@@ -23,9 +23,11 @@
 package freemind.modes.common.dialogs;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -33,6 +35,8 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Vector;
 
 import javax.swing.BorderFactory;
@@ -40,9 +44,13 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.KeyStroke;
 import javax.swing.border.BevelBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
+import accessories.plugins.NewParentNode;
 import freemind.main.FreeMindMain;
 import freemind.modes.IconInformation;
 
@@ -53,6 +61,7 @@ public class IconSelectionPopupDialog extends JDialog implements KeyListener,
 	private JPanel iconPanel = new JPanel();
 	private JLabel[] iconLabels;
 	private JLabel descriptionLabel;
+	private JTextField search = new JTextField();
 	private int numOfIcons;
 	private int xDimension;
 	private int yDimension;
@@ -90,6 +99,15 @@ public class IconSelectionPopupDialog extends JDialog implements KeyListener,
 		iconPanel.setLayout(gridlayout);
 
 		iconLabels = new JLabel[numOfIcons];
+		Collections.sort(icons,new Comparator<IconInformation>() {
+
+			@Override
+			public int compare(IconInformation o1, IconInformation o2) {
+				// TODO Auto-generated method stub
+				return o1.getDescription().compareTo(o2.getDescription());
+			}
+			
+		});
 		for (int i = 0; i < numOfIcons; ++i) {
 			final IconInformation icon = (IconInformation) icons.get(i);
 			iconPanel.add(iconLabels[i] = new JLabel(icon.getIcon()));
@@ -98,7 +116,7 @@ public class IconSelectionPopupDialog extends JDialog implements KeyListener,
 			iconLabels[i].addMouseListener(this);
 		}
 
-		int perIconSize = 27;
+		int perIconSize = 35;
 		iconPanel.setPreferredSize(new Dimension(xDimension * perIconSize,
 				yDimension * perIconSize));
 		iconPanel.setMinimumSize(new Dimension(xDimension * perIconSize,
@@ -112,9 +130,11 @@ public class IconSelectionPopupDialog extends JDialog implements KeyListener,
 		descriptionLabel = new JLabel(" ");
 		// descriptionLabel.setEnabled(false);
 		getContentPane().add(descriptionLabel, BorderLayout.SOUTH);
+		//getContentPane().add(search, BorderLayout.NORTH);
 		setSelectedPosition(lastPosition);
 		select(getSelectedPosition());
 		addKeyListener(this);
+		//search.addKeyListener(this);
 		pack();
 	}
 
@@ -174,7 +194,7 @@ public class IconSelectionPopupDialog extends JDialog implements KeyListener,
 
 	private void highlight(Position position) {
 		iconLabels[calculateIndex(position)].setBorder(BorderFactory
-				.createBevelBorder(BevelBorder.LOWERED));
+				.createBevelBorder(BevelBorder.LOWERED, Color.GREEN, Color.DARK_GRAY));
 	}
 
 	private void cursorLeft() {
