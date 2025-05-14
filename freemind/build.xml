@@ -43,8 +43,8 @@
 	<!-- begin generator part -->
 	<property name="jibxhome" location="lib/jibx"/>
 	<property name="jibxjar" location="lib/bindings.jar"/>
-	<property name="jibxruntimelibs" value="${jibxhome}/jibx-run.jar:${jibxhome}/xpp3.jar"/>
-	<property name="jibxlibs" value="${jibxhome}/bcel.jar:${jibxhome}/jibx-bind.jar:${jibxhome}/jibx-extras.jar:${jibxruntimelibs}"/>
+	<property name="jibxruntimelibs" value="${jibxhome}/jibx-run-1.3.1.jar:${jibxhome}/xpp3-1.1.6.jar"/>
+	<property name="jibxlibs" value="${jibxhome}/bcel-6.1.jar:${jibxhome}/jibx-bind-1.3.1.jar:${jibxhome}/jibx-extras-1.3.1.jar:${jibxruntimelibs}"/>
 	<taskdef name="bind" classname="org.jibx.binding.ant.CompileTask">
 		<classpath path="${jibxlibs}"/>
 		<classpath location="binding/classes"/>
@@ -253,8 +253,8 @@
 				<include name="xercesImpl.jar"/>
 				<include name="forms-1.0.5.jar"/>
 				<include name="bindings.jar"/>
-				<include name="jibx/jibx-run.jar"/>
-				<include name="jibx/xpp3.jar"/>
+				<include name="jibx/jibx-run-1.3.1.jar"/>
+				<include name="jibx/xpp3-1.1.6.jar"/>
 				<include name="SimplyHTML/gnu-regexp-1.1.4.jar"/>
 				<include name="SimplyHTML/SimplyHTML.jar"/>
 				<include name="SimplyHTML/SimplyHTMLHelp.jar"/>
@@ -463,7 +463,7 @@
 			<attribute name="Built-Number" value="${build.number}" />
 			<attribute name="Created-By" value="Joerg Mueller, Daniel Polansky, Christian Foltin, Dimitry Polivaev, and others." />
 			<attribute name="Main-Class" value="freemind.main.FreeMindStarter" />
-			<attribute name="Class-Path" value="freemind.jar .. commons-lang-2.0.jar forms-1.0.5.jar jibx/jibx-run.jar jibx/xpp3.jar jibx-run.jar xpp3.jar bindings.jar jortho.jar xalan.jar serializer.jar xml-apis.jar xercesImpl.jar SimplyHTML/gnu-regexp-1.1.4.jar gnu-regexp-1.1.4.jar SimplyHTML/SimplyHTML.jar SimplyHTML.jar"/>
+			<attribute name="Class-Path" value="freemind.jar .. commons-lang-2.0.jar forms-1.0.5.jar jibx/jibx-run-1.3.1.jar jibx/xpp3-1.1.6.jar jibx-run-1.3.1.jar xpp3-1.1.6.jar bindings.jar jortho.jar xalan.jar serializer.jar xml-apis.jar xercesImpl.jar SimplyHTML/gnu-regexp-1.1.4.jar gnu-regexp-1.1.4.jar SimplyHTML/SimplyHTML.jar SimplyHTML.jar"/>
 		</manifest>
 		<jar jarfile="${FM.jar}"
 		     manifest="${temp.manifest.file}"

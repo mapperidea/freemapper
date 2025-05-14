@@ -142,7 +142,7 @@ public class ActionFactory {
 	 * @return the success of the action. If an exception arises, the method
 	 *         returns false.
 	 */
-	private boolean executeAction(ActionPair pair) {
+	public boolean executeAction(ActionPair pair) {
 		if (pair == null)
 			return false;
 		boolean returnValue = true;
