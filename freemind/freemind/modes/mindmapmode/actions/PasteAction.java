@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +61,7 @@ import freemind.main.Resources;
 import freemind.main.Tools;
 import freemind.main.XMLParseException;
 import freemind.modes.ControllerAdapter;
+import freemind.modes.MindIcon;
 import freemind.modes.MindMapNode;
 import freemind.modes.ModeController;
 import freemind.modes.NodeAdapter;
@@ -70,6 +72,28 @@ import freemind.modes.mindmapmode.actions.xml.ActionPair;
 import freemind.modes.mindmapmode.actions.xml.ActorXml;
 
 public class PasteAction extends AbstractAction implements ActorXml {
+
+	private static final Map<String, String> mapperIdeaIconMap;
+	private static final Pattern mapperIdeaPattern = Pattern.compile("\\[([\\w\\.]+)\\]\\s*(.*)");
+
+	static {
+		mapperIdeaIconMap = new HashMap<String, String>();
+		mapperIdeaIconMap.put("b", "Descriptor.bean");
+		mapperIdeaIconMap.put("c", "Descriptor.class");
+		mapperIdeaIconMap.put("g", "Descriptor.grouping");
+		mapperIdeaIconMap.put("p", "Package");
+		mapperIdeaIconMap.put("d", "Mapping.directToField");
+		mapperIdeaIconMap.put("r", "Mapping.oneToOne");
+		mapperIdeaIconMap.put("o", "Mapping.oneToMany");
+		mapperIdeaIconMap.put("m", "Mapping.manyToOne");
+		mapperIdeaIconMap.put("x", "Method.public");
+		mapperIdeaIconMap.put("e", "element");
+		mapperIdeaIconMap.put("v", "tag_green");
+		mapperIdeaIconMap.put("t", "textNode");
+		mapperIdeaIconMap.put("k", "bullet_key");
+		mapperIdeaIconMap.put("y", "tag_yellow");
+		mapperIdeaIconMap.put("h", "Mapping.directMap");
+	}
 
 	private static java.util.logging.Logger logger;
 	private final MindMapController mMindMapController;
@@ -279,7 +303,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
 				}
 				// and now? paste it:
 				String mapContent = MindMapMapModel.MAP_INITIAL_START
-						+ FreeMind.XML_VERSION + "\"><node TEXT=\"DUMMY\">";
+						+ FreeMind.XML_VERSION + "><node TEXT=\"DUMMY\">";
 				for (int j = 0; j < textLines.length; j++) {
 					mapContent += textLines[j];
 				}
@@ -609,7 +633,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
 		}
 	}
 
-	static final Pattern nonLinkCharacter = Pattern.compile("[ \n()'\",;]");
+	static final Pattern nonLinkCharacter = Pattern.compile("[ \n()\'\",;]");
 
 	/**
 	 * Paste String (as opposed to other flavours)
@@ -630,7 +654,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
 
 		String textFromClipboard = (String) t
 				.getTransferData(DataFlavor.stringFlavor);
-		Pattern mailPattern = Pattern.compile("([^@ <>\\*']+@[^@ <>\\*']+)");
+		Pattern mailPattern = Pattern.compile("([^@ <>*\'`]+@[^@ <>*\'`]+)");
 
 		String[] textLines = textFromClipboard.split("\n");
 
@@ -673,31 +697,49 @@ public class PasteAction extends AbstractAction implements ActorXml {
 			}
 			String visibleText = text.trim();
 
-			// If the text is a recognizable link (e.g.
-			// http://www.google.com/index.html),
-			// make it more readable by look nicer by cutting off obvious prefix
-			// and other
-			// transforamtions.
+			MindMapNode node;
+			Matcher matcher = mapperIdeaPattern.matcher(visibleText);
 
-			if (visibleText.matches("^http://(www\\.)?[^ ]*$")) {
-				visibleText = visibleText.replaceAll("^http://(www\\.)?", "")
-						.replaceAll("(/|\\.[^\\./\\?]*)$", "")
-						.replaceAll("((\\.[^\\./]*\\?)|\\?)[^/]*$", " ? ...")
-						.replaceAll("_|%20", " ");
-				String[] textParts = visibleText.split("/");
-				visibleText = "";
-				for (int textPartIdx = 0; textPartIdx < textParts.length; textPartIdx++) {
-					if (textPartIdx > 0) {
-						visibleText += " > ";
+			if (matcher.find()) {
+				String shortcut = matcher.group(1);
+				String nodeText = matcher.group(2).trim();
+				node = mMindMapController.newNode(nodeText, parent.getMap());
+
+				String iconName = mapperIdeaIconMap.get(shortcut);
+				if (iconName != null) {
+					MindIcon icon = MindIcon.factory(iconName);
+					if (icon != null) {
+						node.addIcon(icon, 0);
 					}
-					visibleText += textPartIdx == 0 ? textParts[textPartIdx]
-							: Tools.firstLetterCapitalized(textParts[textPartIdx]
-									.replaceAll("^~*", ""));
 				}
+			} else {
+				// If the text is a recognizable link (e.g.
+				// http://www.google.com/index.html),
+				// make it more readable by look nicer by cutting off obvious prefix
+				// and other
+				// transforamtions.
+
+				if (visibleText.matches("^http://(www\\.)?[^ ]*$")) {
+					visibleText = visibleText.replaceAll("^http://(www\\.)?", "")
+							.replaceAll("(/|\\.[^\\./\\?]*)$", "")
+							.replaceAll("((\\.[^\\./]*\\?)|\\?)[^/]*$", " ? ...")
+							.replaceAll("_|%20", " ");
+					String[] textParts = visibleText.split("/");
+					visibleText = "";
+					for (int textPartIdx = 0; textPartIdx < textParts.length; textPartIdx++) {
+						if (textPartIdx > 0) {
+							visibleText += " > ";
+						}
+						visibleText += textPartIdx == 0 ? textParts[textPartIdx]
+								: Tools.firstLetterCapitalized(textParts[textPartIdx]
+										.replaceAll("^~*", ""));
+					}
+				}
+
+				node = mMindMapController.newNode(visibleText,
+						parent.getMap());
 			}
 
-			MindMapNode node = mMindMapController.newNode(visibleText,
-					parent.getMap());
 			if (textLines.length == 1) {
 				pastedNode = node;
 			}
