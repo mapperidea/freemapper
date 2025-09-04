@@ -1,25 +1,3 @@
-/**
- * Created on 22.02.2004
- *FreeMind - A Program for creating and viewing Mindmaps
- *Copyright (C) 2000-2001  Joerg Mueller <joergmueller@bigfoot.com>
- * See COPYING for Details
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 2 of the License, or (at your option) any later
- * version.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this program; if not, write to the Free Software Foundation, Inc., 59 Temple
- * Place - Suite 330, Boston, MA 02111-1307, USA.
- *
- * @author <a href="mailto:labe@users.sourceforge.net">Lars Berning</a>
- */
 package freemind.modes.common.dialogs;
 
 import java.awt.BorderLayout;
@@ -38,6 +16,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Vector;
 
+import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -48,6 +27,8 @@ import javax.swing.border.BevelBorder;
 
 import freemind.main.FreeMindMain;
 import freemind.modes.IconInformation;
+import freemind.modes.mindmapmode.actions.RemoveAllIconsAction;
+import freemind.modes.mindmapmode.actions.RemoveIconAction;
 
 public class IconSelectionPopupDialog extends JDialog implements KeyListener,
         MouseListener {
@@ -282,89 +263,116 @@ public class IconSelectionPopupDialog extends JDialog implements KeyListener,
         return m;
     }
 
-    /*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
-     */
     private boolean isCapturingSearchText = false;
     private String searchText = "";
 
     public void keyPressed(KeyEvent keyEvent) {
         if (keyEvent.getKeyChar() == '/') {
-            // start capturing search text
             isCapturingSearchText = true;
             searchText = "";
-        } else if (isCapturingSearchText) {
-            // capture search text until enter is pressed
+            searchLabel.setText("Search: ");
+            keyEvent.consume();
+            return;
+        }
+
+        if (isCapturingSearchText) {
             switch (keyEvent.getKeyCode()) {
                 case KeyEvent.VK_ENTER:
-                    // if the search text is not empty, search for the icons
-                    if (!searchText.isEmpty()) {
-                        // search the icons based on the searchText variable
-                        filterIcons(searchText);
-                        // clear the searchText variable
-                        searchText = "";
-                    }
-                    // stop capturing search text
                     isCapturingSearchText = false;
+                    searchLabel.setText("Use / to search");
                     break;
                 case KeyEvent.VK_ESCAPE:
-                    // stop capturing search text and close the window
                     isCapturingSearchText = false;
-                    keyEvent.consume();
-                    close();
-                    return;
+                    searchText = "";
+                    filterIcons(searchText);
+                    searchLabel.setText("Use / to search");
+                    break;
                 case KeyEvent.VK_BACK_SPACE:
-                    // if there's text in the searchText variable, remove the last character
                     if (!searchText.isEmpty()) {
                         searchText = searchText.substring(0, searchText.length() - 1);
                         filterIcons(searchText);
+                    } else {
+                        isCapturingSearchText = false;
+                        searchLabel.setText("Use / to search");
+                        triggerRemoveLastIconAction(keyEvent.getModifiers());
                     }
-                    keyEvent.consume();
                     break;
                 default:
-                    // add typed character to searchText
                     if (Character.isLetterOrDigit(keyEvent.getKeyChar())) {
                         searchText += keyEvent.getKeyChar();
                         filterIcons(searchText);
                     }
             }
-        } else {
-            switch (keyEvent.getKeyCode()) {
-                case KeyEvent.VK_RIGHT:
-                case KeyEvent.VK_KP_RIGHT:
-                    cursorRight();
-                    return;
-                case KeyEvent.VK_LEFT:
-                case KeyEvent.VK_KP_LEFT:
-                    cursorLeft();
-                    return;
-                case KeyEvent.VK_DOWN:
-                case KeyEvent.VK_KP_DOWN:
-                    cursorDown();
-                    return;
-                case KeyEvent.VK_UP:
-                case KeyEvent.VK_KP_UP:
-                    cursorUp();
-                    return;
-                case KeyEvent.VK_ESCAPE:
-                    keyEvent.consume();
-                    close();
-                    return;
-                case KeyEvent.VK_ENTER:
-                case KeyEvent.VK_SPACE:
-                    addIcon(keyEvent.getModifiers());
-                    keyEvent.consume();
-                    return;
-            }
-            int index = findIndexByKeyEvent(keyEvent);
-            if (index != -1) {
-                result = index;
-                lastPosition = getPositionFromIndex(index);
-                mModifiers = keyEvent.getModifiers();
+            keyEvent.consume();
+            return;
+        }
+
+        switch (keyEvent.getKeyCode()) {
+            case KeyEvent.VK_DELETE:
+                triggerRemoveAllIconsAction(keyEvent.getModifiers());
                 keyEvent.consume();
+                break;
+            case KeyEvent.VK_BACK_SPACE:
+                triggerRemoveLastIconAction(keyEvent.getModifiers());
+                keyEvent.consume();
+                break;
+            case KeyEvent.VK_RIGHT:
+            case KeyEvent.VK_KP_RIGHT:
+                cursorRight();
+                return;
+            case KeyEvent.VK_LEFT:
+            case KeyEvent.VK_KP_LEFT:
+                cursorLeft();
+                return;
+            case KeyEvent.VK_DOWN:
+            case KeyEvent.VK_KP_DOWN:
+                cursorDown();
+                return;
+            case KeyEvent.VK_UP:
+            case KeyEvent.VK_KP_UP:
+                cursorUp();
+                return;
+            case KeyEvent.VK_ESCAPE:
+                keyEvent.consume();
+                close();
+                return;
+            case KeyEvent.VK_ENTER:
+            case KeyEvent.VK_SPACE:
+                addIcon(keyEvent.getModifiers());
+                keyEvent.consume();
+                return;
+        }
+
+        int index = findIndexByKeyEvent(keyEvent);
+        if (index != -1) {
+            result = index;
+            lastPosition = getPositionFromIndex(index);
+            mModifiers = keyEvent.getModifiers();
+            keyEvent.consume();
+            this.dispose();
+        }
+    }
+
+    private void triggerRemoveLastIconAction(int modifiers) {
+        for (int i = 0; i < icons.size(); i++) {
+            Action action = (Action) icons.get(i);
+            if (action instanceof RemoveIconAction) {
+                result = i;
+                mModifiers = modifiers;
                 this.dispose();
+                return;
+            }
+        }
+    }
+
+    private void triggerRemoveAllIconsAction(int modifiers) {
+        for (int i = 0; i < icons.size(); i++) {
+            Action action = (Action) icons.get(i);
+            if (action instanceof RemoveAllIconsAction) {
+                result = i;
+                mModifiers = modifiers;
+                this.dispose();
+                return;
             }
         }
     }
@@ -400,62 +408,26 @@ public class IconSelectionPopupDialog extends JDialog implements KeyListener,
         this.dispose();
     }
 
-    /*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
-     */
     public void keyReleased(KeyEvent arg0) {
     }
 
-    /*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
-     */
     public void keyTyped(KeyEvent arg0) {
     }
 
-    /*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.MouseListener#mouseClicked(java.awt.event.MouseEvent)
-     */
     public void mouseClicked(MouseEvent mouseEvent) {
         addIcon(mouseEvent.getModifiers());
     }
 
-    /*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.MouseListener#mouseEntered(java.awt.event.MouseEvent)
-     */
     public void mouseEntered(MouseEvent arg0) {
         select(getPosition((JLabel) arg0.getSource()));
     }
 
-    /*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.MouseListener#mouseExited(java.awt.event.MouseEvent)
-     */
     public void mouseExited(MouseEvent arg0) {
     }
 
-    /*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.MouseListener#mousePressed(java.awt.event.MouseEvent)
-     */
     public void mousePressed(MouseEvent arg0) {
     }
 
-    /*
-	 * (non-Javadoc)
-	 * 
-	 * @see
-	 * java.awt.event.MouseListener#mouseReleased(java.awt.event.MouseEvent)
-     */
     public void mouseReleased(MouseEvent arg0) {
     }
 
@@ -468,16 +440,10 @@ public class IconSelectionPopupDialog extends JDialog implements KeyListener,
             this.y = y;
         }
 
-        /**
-         * @return Returns the x.
-         */
         public int getX() {
             return x;
         }
 
-        /**
-         * @return Returns the y.
-         */
         public int getY() {
             return y;
         }
