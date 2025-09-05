@@ -73,8 +73,8 @@ public class MindMapNodeDropListener implements DropTargetListener {
 	}
 
 	public void drop(DropTargetDropEvent dtde) {
+		int dropAction = dtde.getDropAction();
 		try {
-			int dropAction = dtde.getDropAction();
 			Transferable t = dtde.getTransferable();
 
 			final MainView mainView = (MainView) dtde.getDropTargetContext()
@@ -225,12 +225,15 @@ public class MindMapNodeDropListener implements DropTargetListener {
 						mainView.dropPosition(dtde.getLocation().getX()));
 				if (!result && DnDConstants.ACTION_MOVE == dropAction) {
 					// an error occured. how to react?
-
+					mMindMapController.undo.actionPerformed(null);
 				}
 			}
 		} catch (Exception e) {
 			System.err.println("Drop exception:" + e);
 			freemind.main.Resources.getInstance().logException(e);
+			if (dropAction == DnDConstants.ACTION_MOVE) {
+				mMindMapController.undo.actionPerformed(null);
+			}
 			dtde.dropComplete(false);
 			return;
 		}

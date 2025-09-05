@@ -303,7 +303,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
 				}
 				// and now? paste it:
 				String mapContent = MindMapMapModel.MAP_INITIAL_START
-						+ FreeMind.XML_VERSION + "><node TEXT=\"DUMMY\">";
+						+ FreeMind.XML_VERSION + "\"><node TEXT=\"DUMMY\">";
 				for (int j = 0; j < textLines.length; j++) {
 					mapContent += textLines[j];
 				}
