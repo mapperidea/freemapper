@@ -200,39 +200,75 @@ public class IconSelectionPopupDialog extends JDialog implements KeyListener,
     }
 
     private void cursorLeft() {
-        Position newPosition = new Position(getSelectedPosition().getX() - 1,
-                getSelectedPosition().getY());
-        if (canSelect(newPosition)) {
-            System.out.println(newPosition + "Esquerda");
-            select(newPosition);
-        }
+        int startIndex = calculateIndex(getSelectedPosition());
+        int nextIndex = startIndex;
+        do {
+            nextIndex--;
+            if (nextIndex < 0) {
+                nextIndex = numOfIcons - 1;
+            }
+            if (iconLabels[nextIndex].isVisible()) {
+                select(getPositionFromIndex(nextIndex));
+                return;
+            }
+        } while (nextIndex != startIndex);
     }
 
     private void cursorRight() {
-        Position newPosition = new Position(getSelectedPosition().getX() + 1,
-                getSelectedPosition().getY());
-        if (canSelect(newPosition)) {
-            System.out.println(newPosition + "Direita");
-            select(newPosition);
-        }
+        int startIndex = calculateIndex(getSelectedPosition());
+        int nextIndex = startIndex;
+        do {
+            nextIndex++;
+            if (nextIndex >= numOfIcons) {
+                nextIndex = 0;
+            }
+            if (iconLabels[nextIndex].isVisible()) {
+                select(getPositionFromIndex(nextIndex));
+                return;
+            }
+        } while (nextIndex != startIndex);
     }
 
     private void cursorUp() {
-        Position newPosition = new Position(getSelectedPosition().getX(),
-                getSelectedPosition().getY() - 1);
-        if (canSelect(newPosition)) {
-            System.out.println(newPosition + "Cima");
-            select(newPosition);
+        int startIndex = calculateIndex(getSelectedPosition());
+        Position currentPos = getPositionFromIndex(startIndex);
+        // Try to go up in the same column first
+        for (int y = currentPos.getY() - 1; y >= -1; y--) {
+            int yToTest = y;
+            if (y == -1) { // wrap
+                yToTest = yDimension - 1;
+            }
+            int testIndex = yToTest * xDimension + currentPos.getX();
+            if (testIndex < numOfIcons && testIndex >= 0 && iconLabels[testIndex].isVisible()) {
+                select(getPositionFromIndex(testIndex));
+                return;
+            }
+            if (yToTest == currentPos.getY())
+                break; // full circle
         }
+        // If that fails (e.g. empty column), just go to previous visible
+        cursorLeft();
     }
 
     private void cursorDown() {
-        Position newPosition = new Position(getSelectedPosition().getX(),
-                getSelectedPosition().getY() + 1);
-        if (canSelect(newPosition)) {
-            System.out.println(newPosition + "Baixo");
-            select(newPosition);
+        int startIndex = calculateIndex(getSelectedPosition());
+        // Try to go down in the same column first
+        Position currentPos = getPositionFromIndex(startIndex);
+        for (int y = currentPos.getY() + 1; y < yDimension + 1; y++) {
+            int yToTest = y;
+            if (y == yDimension) { // wrap
+                yToTest = 0;
+            }
+            int testIndex = yToTest * xDimension + currentPos.getX();
+            if (testIndex < numOfIcons && testIndex >= 0 && iconLabels[testIndex].isVisible()) {
+                select(getPositionFromIndex(testIndex));
+                return;
+            }
+            if (yToTest == currentPos.getY())
+                break; // full circle
         }
+        // If that fails (e.g. empty column), just go to next visible
+        cursorRight();
     }
 
     private void addIcon(int pModifiers) {
