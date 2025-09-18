@@ -704,8 +704,13 @@ public class PasteAction extends AbstractAction implements ActorXml {
 				String rawContent = matcher.group(2); // Conteúdo bruto com espaços
 
 				if (shortcut.equals("v") || shortcut.equals("y")) {
-					// Caso A: Preservar espaços para [v] e [y]
-					nodeText = rawContent;
+					// Caso A: Preservar espaços para [v] e [y], removendo o primeiro espaço se ele existir.
+					if (rawContent.startsWith(" ")) {
+						nodeText = rawContent.substring(1);
+					}
+					else {
+						nodeText = rawContent;
+					}
 				} else {
 					// Caso B: Comportamento padrão para outros ícones
 					nodeText = rawContent.trim();
