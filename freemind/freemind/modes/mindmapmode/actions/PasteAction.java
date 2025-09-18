@@ -74,7 +74,7 @@ import freemind.modes.mindmapmode.actions.xml.ActorXml;
 public class PasteAction extends AbstractAction implements ActorXml {
 
 	private static final Map<String, String> mapperIdeaIconMap;
-	private static final Pattern mapperIdeaPattern = Pattern.compile("\\[([\\w\\.]+)\\]\\s*(.*)");
+	private static final Pattern mapperIdeaPattern = Pattern.compile("\\[([\\w\\.]+)\\](.*)");
 
 	static {
 		mapperIdeaIconMap = new HashMap<String, String>();
@@ -695,16 +695,25 @@ public class PasteAction extends AbstractAction implements ActorXml {
 			while (depth < text.length() && text.charAt(depth) == ' ') {
 				++depth;
 			}
-			String visibleText = text.trim();
+			String lineContent = text.substring(depth);
 
+			Matcher matcher = mapperIdeaPattern.matcher(lineContent);
 			MindMapNode node;
-			Matcher matcher = mapperIdeaPattern.matcher(visibleText);
-
+			String nodeText;
 			if (matcher.find()) {
 				String shortcut = matcher.group(1);
-				String nodeText = matcher.group(2).trim();
-				node = mMindMapController.newNode(nodeText, parent.getMap());
+				String rawContent = matcher.group(2); // Conteúdo bruto com espaços
 
+				if (shortcut.equals("v") || shortcut.equals("y")) {
+					// Caso A: Preservar espaços para [v] e [y]
+					nodeText = rawContent;
+				} else {
+					// Caso B: Comportamento padrão para outros ícones
+					nodeText = rawContent.trim();
+				}
+
+				// Criar o nó e adicionar o ícone
+				node = mMindMapController.newNode(nodeText, parent.getMap());
 				String iconName = mapperIdeaIconMap.get(shortcut);
 				if (iconName != null) {
 					MindIcon icon = MindIcon.factory(iconName);
@@ -713,31 +722,33 @@ public class PasteAction extends AbstractAction implements ActorXml {
 					}
 				}
 			} else {
+				// Caso C: Comportamento padrão para linhas sem ícone
+				nodeText = lineContent.trim();
+				
 				// If the text is a recognizable link (e.g.
 				// http://www.google.com/index.html),
 				// make it more readable by look nicer by cutting off obvious prefix
 				// and other
 				// transforamtions.
 
-				if (visibleText.matches("^http://(www\\.)?[^ ]*$")) {
-					visibleText = visibleText.replaceAll("^http://(www\\.)?", "")
+				if (nodeText.matches("^http://(www\\.)?[^ ]*$")) {
+					nodeText = nodeText.replaceAll("^http://(www\\.)?", "")
 							.replaceAll("(/|\\.[^\\./\\?]*)$", "")
 							.replaceAll("((\\.[^\\./]*\\?)|\\?)[^/]*$", " ? ...")
 							.replaceAll("_|%20", " ");
-					String[] textParts = visibleText.split("/");
-					visibleText = "";
+					String[] textParts = nodeText.split("/");
+					nodeText = "";
 					for (int textPartIdx = 0; textPartIdx < textParts.length; textPartIdx++) {
 						if (textPartIdx > 0) {
-							visibleText += " > ";
+							nodeText += " > ";
 						}
-						visibleText += textPartIdx == 0 ? textParts[textPartIdx]
+						nodeText += textPartIdx == 0 ? textParts[textPartIdx]
 								: Tools.firstLetterCapitalized(textParts[textPartIdx]
 										.replaceAll("^~*", ""));
 					}
 				}
-
-				node = mMindMapController.newNode(visibleText,
-						parent.getMap());
+				
+				node = mMindMapController.newNode(nodeText, parent.getMap());
 			}
 
 			if (textLines.length == 1) {
@@ -746,7 +757,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
 
 			// Heuristically determine, if there is a mail.
 
-			Matcher mailMatcher = mailPattern.matcher(visibleText);
+			Matcher mailMatcher = mailPattern.matcher(nodeText);
 			if (mailMatcher.find()) {
 				node.setLink("mailto:" + mailMatcher.group());
 			}
