@@ -654,7 +654,6 @@ public class PasteAction extends AbstractAction implements ActorXml {
 
 		String textFromClipboard = (String) t
 				.getTransferData(DataFlavor.stringFlavor);
-		Pattern mailPattern = Pattern.compile("([^@ <>*\'`]+@[^@ <>*\'`]+)");
 
 		String[] textLines = textFromClipboard.split("\n");
 
@@ -753,13 +752,6 @@ public class PasteAction extends AbstractAction implements ActorXml {
 
 			if (textLines.length == 1) {
 				pastedNode = node;
-			}
-
-			// Heuristically determine, if there is a mail.
-
-			Matcher mailMatcher = mailPattern.matcher(nodeText);
-			if (mailMatcher.find()) {
-				node.setLink("mailto:" + mailMatcher.group());
 			}
 
 			// Heuristically determine, if there is a link. Because this is
