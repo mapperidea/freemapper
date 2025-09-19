@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<plugin label="accessories/plugins/ExportAsMI">
+	<plugin_action 
+		documentation="Exports the map to the Mapper Idea textual format."
+		name="%export_as_mi.text"
+		base="freemind.extensions.ModeControllerHookAdapter"
+		label="accessories/plugins/ExportAsMI.properties"
+		class_name="accessories.plugins.ExportAsMI">
+		<plugin_mode class_name="freemind.modes.mindmapmode"/>
+		<plugin_menu location="menu_bar/file/export/other/exportAsMI"/>
+	</plugin_action>
+</plugin>
