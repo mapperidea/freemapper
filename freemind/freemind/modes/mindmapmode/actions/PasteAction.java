@@ -682,6 +682,8 @@ public class PasteAction extends AbstractAction implements ActorXml {
 		String[] linkPrefixes = { "http://", "ftp://", "https://" };
 
 		MindMapNode pastedNode = null;
+		MindMapNode lastCreatedNode = null;
+		String lastUsedShortcut = null;
 
 		for (int i = 0; i < textLines.length; ++i) {
 			String text = textLines[i];
@@ -696,11 +698,21 @@ public class PasteAction extends AbstractAction implements ActorXml {
 			}
 			String lineContent = text.substring(depth);
 
+			if (lineContent.startsWith("| ") && "v".equals(lastUsedShortcut) && lastCreatedNode != null) {
+				String continuationText = lineContent.substring(2);
+				lastCreatedNode.setText(lastCreatedNode.getText() + "\n" + continuationText);
+				continue;
+			}
+
+			lastCreatedNode = null;
+			lastUsedShortcut = null;
+
 			Matcher matcher = mapperIdeaPattern.matcher(lineContent);
 			MindMapNode node;
 			String nodeText;
+			String shortcut = null;
 			if (matcher.find()) {
-				String shortcut = matcher.group(1);
+				shortcut = matcher.group(1);
 				String rawContent = matcher.group(2); // Conteúdo bruto com espaços
 
 				if (shortcut.equals("v") || shortcut.equals("y")) {
@@ -758,6 +770,9 @@ public class PasteAction extends AbstractAction implements ActorXml {
 			if (textLines.length == 1) {
 				pastedNode = node;
 			}
+
+			lastCreatedNode = node;
+			lastUsedShortcut = shortcut;
 
 			// Heuristically determine, if there is a link. Because this is
 			// heuristic, it is probable that it can be improved to include
