@@ -57,7 +57,14 @@
                 <xsl:with-param name="indent" select="concat($indent, $indent-spaces)"/>
             </xsl:call-template>
         </xsl:if>
-
+        <xsl:if test="@LINK">
+            <xsl:value-of select="$indent"/>
+            <xsl:text>    #&#xA;</xsl:text>
+            <xsl:value-of select="$indent"/>
+            <xsl:text>        </xsl:text>
+            <xsl:value-of select="@LINK"/>
+            <xsl:text>&#xA;</xsl:text>
+        </xsl:if>
         <xsl:apply-templates select="node">
             <xsl:with-param name="indent" select="concat($indent, $indent-spaces)"/>
         </xsl:apply-templates>

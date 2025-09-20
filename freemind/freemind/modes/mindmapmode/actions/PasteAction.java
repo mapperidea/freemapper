@@ -684,6 +684,8 @@ public class PasteAction extends AbstractAction implements ActorXml {
 		MindMapNode pastedNode = null;
 		MindMapNode lastCreatedNode = null;
 		String lastUsedShortcut = null;
+		MindMapNode nodeForNextLink = null;
+		int hashDepth = -1;
 
 		for (int i = 0; i < textLines.length; ++i) {
 			String text = textLines[i];
@@ -697,6 +699,33 @@ public class PasteAction extends AbstractAction implements ActorXml {
 				++depth;
 			}
 			String lineContent = text.substring(depth);
+
+			if (nodeForNextLink != null && depth > hashDepth) {
+				String filename = lineContent.trim();
+				nodeForNextLink.setLink(filename);
+				nodeForNextLink = null;
+				hashDepth = -1;
+			}
+
+			if (lineContent.trim().equals("#")) {
+				MindMapNode parentOfHash = null;
+				for (int j = parentNodes.size() - 1; j >= 0; --j) {
+					if (depth > ((Integer) parentNodesDepths.get(j)).intValue()) {
+						parentOfHash = (MindMapNode) parentNodes.get(j);
+						break;
+					}
+				}
+				if (parentOfHash != null) {
+					nodeForNextLink = parentOfHash;
+					hashDepth = depth;
+				}
+				continue;
+			}
+
+			if (nodeForNextLink != null && depth <= hashDepth) {
+				nodeForNextLink = null;
+				hashDepth = -1;
+			}
 
 			if (lineContent.startsWith("| ") && "v".equals(lastUsedShortcut) && lastCreatedNode != null) {
 				String continuationText = lineContent.substring(2);
