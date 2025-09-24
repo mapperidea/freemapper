@@ -328,6 +328,7 @@ public class MindMapController extends ControllerAdapter implements
 	public Action followLink = new FollowLinkAction();
 	public Action openLinkDirectory = new OpenLinkDirectoryAction();
 	public Action exportBranch = new ExportBranchAction(this);
+	public Action exportBranchAsMI = new ExportBranchAsMIAction(this);
 	public Action importBranch = new ImportBranchAction();
 	public Action importLinkedBranch = new ImportLinkedBranchAction();
 	public Action importLinkedBranchWithoutRoot = new ImportLinkedBranchWithoutRootAction();
@@ -1263,6 +1264,104 @@ public class MindMapController extends ControllerAdapter implements
 			}
 		}
 	}
+//ExportBranchAsMIAction Start
+	protected class ExportBranchAsMIAction extends AbstractAction {
+    	private final MindMapController mMindMapController;
+
+    	public ExportBranchAsMIAction(MindMapController pMindMapController) {
+        	super(pMindMapController.getText("export_branch_as_mi.text"));
+        	mMindMapController = pMindMapController;
+    	}
+
+    	public void actionPerformed(ActionEvent e) {
+        	MindMapNode node = mMindMapController.getSelected();
+
+        	if (getMap() == null || node == null) {
+            	return; // No map or node.
+        }
+
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle(mMindMapController.getText("export_branch_as_mi"));
+
+        File currentMapFile = getMap().getFile();
+        String safeNodeName = node.toString().replaceAll("[^a-zA-Z0-9.-]", "_");
+        if (currentMapFile != null) {
+            String suggestedName = Tools.removeExtension(currentMapFile.getName()) + "_" + safeNodeName + ".mi";
+            chooser.setSelectedFile(new File(currentMapFile.getParent(), suggestedName));
+        } else {
+            chooser.setSelectedFile(new File(safeNodeName + ".mi"));
+        }
+
+        int result = chooser.showSaveDialog(getView());
+        if (result == JFileChooser.APPROVE_OPTION) {
+            File saveFile = chooser.getSelectedFile();
+            if (saveFile == null) {
+                return;
+            }
+
+            try {
+                String xsltFileName = "accessories/exportMI.xsl";
+
+                String branchXml = mMindMapController.getBranchXml(node);
+
+                if (branchXml == null) {
+                    JOptionPane.showMessageDialog(getView(),
+                            "Could not generate XML for the selected branch.", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+
+                boolean success = transformBranchWithXslt(xsltFileName, saveFile, branchXml);
+
+                if (success) {
+                    // Post-processing step
+                    String content = new String(
+                            java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(saveFile.toURI())),
+                            java.nio.charset.StandardCharsets.UTF_8);
+                    content = content.replace("§", " ");
+                    java.nio.file.Files.write(java.nio.file.Paths.get(saveFile.toURI()),
+                            content.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                } else {
+                    JOptionPane.showMessageDialog(getView(),
+                            mMindMapController.getText("error_applying_template"), "Freemind",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+
+            } catch (Exception ex) {
+                freemind.main.Resources.getInstance().logException(ex);
+                JOptionPane.showMessageDialog(getView(),
+                        ex.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private boolean transformBranchWithXslt(String xsltFileName, File saveFile, String branchXml) throws java.io.IOException {
+        java.io.StringReader reader = new java.io.StringReader(branchXml);
+        java.net.URL xsltUrl = mMindMapController.getResource(xsltFileName);
+        if (xsltUrl == null) {
+            throw new IllegalArgumentException("Can't find " + xsltFileName + " as resource.");
+        }
+        java.io.InputStream xsltFile = xsltUrl.openStream();
+        return transform(new javax.xml.transform.stream.StreamSource(reader), xsltFile, saveFile);
+    }
+
+    private boolean transform(javax.xml.transform.Source xmlSource, java.io.InputStream xsltStream, File resultFile)
+            throws java.io.FileNotFoundException {
+        javax.xml.transform.Source xsltSource = new javax.xml.transform.stream.StreamSource(xsltStream);
+        javax.xml.transform.Result result = new javax.xml.transform.stream.StreamResult(new java.io.FileOutputStream(resultFile));
+        try {
+            javax.xml.transform.TransformerFactory transFact = javax.xml.transform.TransformerFactory.newInstance();
+            javax.xml.transform.Transformer trans = transFact.newTransformer(xsltSource);
+            trans.transform(xmlSource, result);
+        } catch (Exception e) {
+            freemind.main.Resources.getInstance().logException(e);
+            return false;
+        }
+        return true;
+    }
+}
+
 
 	private class ImportBranchAction extends AbstractAction {
 		ImportBranchAction() {
@@ -2343,6 +2442,19 @@ public class MindMapController extends ControllerAdapter implements
 
 	public boolean doTransaction(String pName, ActionPair pPair) {
 		return actionFactory.doTransaction(pName, pPair);
+	}
+
+	public String getBranchXml(MindMapNode node) {
+		StringWriter writer = new StringWriter();
+		try {
+			((MindMapNodeModel) node).save(writer, getMap().getLinkRegistry(),true, true);
+			String nodeXml = writer.toString();
+			// Wrap with <map> tag for the XSLT transformer
+			return "<map version=\"" + freemind.main.FreeMind.XML_VERSION + "\">" + nodeXml + "</map>";
+		} catch (java.io.IOException e) {
+			freemind.main.Resources.getInstance().logException(e);
+			return null;
+		}
 	}
 
 }
