@@ -703,8 +703,10 @@ public class PasteAction extends AbstractAction implements ActorXml {
 			if (nodeForNextLink != null && depth > hashDepth) {
 				String filename = lineContent.trim();
 				nodeForNextLink.setLink(filename);
+				mMindMapController.nodeChanged(nodeForNextLink);
 				nodeForNextLink = null;
 				hashDepth = -1;
+				continue;
 			}
 
 			if (lineContent.trim().equals("#")) {
