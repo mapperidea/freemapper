@@ -11,7 +11,6 @@
 			</menu_category>
 			<menu_submenu name="export"  name_ref="menu_file_export">
 				<menu_action field="exportBranch" key_ref="keystroke_export_branch"/>
-				<menu_action field='exportBranchAsMI' name="export_branch_as_mi"/>
 				<menu_separator/>
 				<menu_category name="html">
 					<menu_action field="exportToHTML" key_ref="keystroke_export_to_html"/>
@@ -264,7 +263,6 @@
 		</menu_category>
 		<menu_submenu name="export"  name_ref="menu_file_export">
 			<menu_action field="exportBranch" key_ref="keystroke_export_branch"/>
-			<menu_action field="exportBranchAsMI" name="export_branch_as_mi"/>
 		</menu_submenu>
 		<menu_submenu name="format" name_ref="menu_format">
 			<menu_category name="nodes">
