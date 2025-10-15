@@ -83,6 +83,34 @@ public class EditNodeDialog extends EditNodeBase {
 			editorScrollPane
 					.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 
+			// Add Undo/Redo functionality
+			final javax.swing.undo.UndoManager undoManager = new javax.swing.undo.UndoManager();
+			textArea.getDocument().addUndoableEditListener(undoManager);
+
+			textArea.getActionMap().put("Undo", new javax.swing.AbstractAction("Undo") {
+				public void actionPerformed(java.awt.event.ActionEvent evt) {
+					try {
+						if (undoManager.canUndo()) {
+							undoManager.undo();
+						}
+					} catch (javax.swing.undo.CannotUndoException e) {
+					}
+				}
+			});
+			textArea.getInputMap().put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.CTRL_DOWN_MASK), "Undo");
+
+			textArea.getActionMap().put("Redo", new javax.swing.AbstractAction("Redo") {
+				public void actionPerformed(java.awt.event.ActionEvent evt) {
+					try {
+						if (undoManager.canRedo()) {
+							undoManager.redo();
+						}
+					} catch (javax.swing.undo.CannotRedoException e) {
+					}
+				}
+			});
+			textArea.getInputMap().put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Y, java.awt.event.InputEvent.CTRL_DOWN_MASK), "Redo");
+
 			// int preferredHeight = new
 			// Integer(getFrame().getProperty("el__default_window_height")).intValue();
 			int preferredHeight = getNode().getHeight();
