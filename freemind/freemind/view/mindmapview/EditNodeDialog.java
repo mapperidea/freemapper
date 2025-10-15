@@ -68,6 +68,7 @@ public class EditNodeDialog extends EditNodeBase {
 	class LongNodeDialog extends EditDialog {
 		private static final long serialVersionUID = 6185443281994675732L;
 		private JTextArea textArea;
+		private FindAndReplacePanel findAndReplacePanel;
 
 		LongNodeDialog() {
 			super(EditNodeDialog.this);
@@ -110,6 +111,117 @@ public class EditNodeDialog extends EditNodeBase {
 				}
 			});
 			textArea.getInputMap().put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Y, java.awt.event.InputEvent.CTRL_DOWN_MASK), "Redo");
+			
+			// Find and Replace panel setup
+			findAndReplacePanel = new FindAndReplacePanel();
+			findAndReplacePanel.setVisible(false);
+
+			findAndReplacePanel.addCloseListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					if (findAndReplacePanel.isVisible()) {
+						findAndReplacePanel.setVisible(false);
+						LongNodeDialog.this.pack();
+					}
+				}
+			});
+
+			javax.swing.AbstractAction showFindAction = new javax.swing.AbstractAction("ShowFind") {
+				public void actionPerformed(ActionEvent e) {
+					if (!findAndReplacePanel.isVisible()) {
+						findAndReplacePanel.setVisible(true);
+						LongNodeDialog.this.pack();
+					}
+					findAndReplacePanel.requestFocusOnSearchField();
+				}
+			};
+
+			textArea.getActionMap().put("ShowFind", showFindAction);
+			textArea.getInputMap().put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, java.awt.event.InputEvent.CTRL_DOWN_MASK), "ShowFind");
+			textArea.getInputMap().put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, java.awt.event.InputEvent.CTRL_DOWN_MASK), "ShowFind");
+
+			findAndReplacePanel.addFindNextListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					String searchTerm = findAndReplacePanel.getSearchTerm();
+					if (searchTerm.isEmpty()) {
+						return;
+					}
+					String text = textArea.getText();
+					boolean matchCase = findAndReplacePanel.isMatchCase();
+
+					String textToSearch = matchCase ? text : text.toLowerCase();
+					String termToSearch = matchCase ? searchTerm : searchTerm.toLowerCase();
+
+					int fromIndex = textArea.getCaretPosition();
+					int start = textToSearch.indexOf(termToSearch, fromIndex);
+
+					if (start == -1) { // Not found from caret, try from beginning
+						start = textToSearch.indexOf(termToSearch, 0);
+					}
+
+					if (start != -1) { // Found
+						int end = start + searchTerm.length();
+						textArea.select(start, end);
+						textArea.requestFocusInWindow();
+					} 
+				}
+			});
+
+			findAndReplacePanel.addReplaceListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					String selectedText = textArea.getSelectedText();
+					if (selectedText == null) {
+						// If nothing is selected, just find the next occurrence.
+						findAndReplacePanel.getFindNextButton().doClick();
+						return;
+					}
+					String searchTerm = findAndReplacePanel.getSearchTerm();
+					boolean matchCase = findAndReplacePanel.isMatchCase();
+
+					boolean selectionMatches = matchCase ? selectedText.equals(searchTerm) : selectedText.equalsIgnoreCase(searchTerm);
+
+					if (selectionMatches) {
+						String replaceTerm = findAndReplacePanel.getReplaceTerm();
+						textArea.replaceSelection(replaceTerm);
+					}
+
+					// Find next occurrence
+					findAndReplacePanel.getFindNextButton().doClick();
+				}
+			});
+
+			findAndReplacePanel.addReplaceAllListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					String searchTerm = findAndReplacePanel.getSearchTerm();
+					if (searchTerm.isEmpty()) {
+						return;
+					}
+					String replaceTerm = findAndReplacePanel.getReplaceTerm();
+					String originalText = textArea.getText();
+					String newText;
+
+					if (findAndReplacePanel.isMatchCase()) {
+						newText = originalText.replace(searchTerm, replaceTerm);
+					} else {
+						StringBuilder sb = new StringBuilder();
+						int index = 0;
+						int searchLength = searchTerm.length();
+						String lowerCaseText = originalText.toLowerCase();
+						String lowerCaseSearchTerm = searchTerm.toLowerCase();
+						int found;
+
+						while ((found = lowerCaseText.indexOf(lowerCaseSearchTerm, index)) != -1) {
+							sb.append(originalText, index, found);
+							sb.append(replaceTerm);
+							index = found + searchLength;
+						}
+						sb.append(originalText.substring(index));
+						newText = sb.toString();
+					}
+					textArea.setText(newText);
+				}
+			});
+
+
 
 			// int preferredHeight = new
 			// Integer(getFrame().getProperty("el__default_window_height")).intValue();
@@ -274,6 +386,7 @@ public class EditNodeDialog extends EditNodeBase {
 			buttonPane.add(splitButton);
 			buttonPane.setMaximumSize(new Dimension(1000, 20));
 
+			panel.add(findAndReplacePanel);
 			if (getFrame().getProperty("el__buttons_position").equals("above")) {
 				panel.add(buttonPane);
 				panel.add(editorScrollPane);
