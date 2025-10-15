@@ -90,24 +90,32 @@ public class EditNodeDialog extends EditNodeBase {
 
 			textArea.getActionMap().put("Undo", new javax.swing.AbstractAction("Undo") {
 				public void actionPerformed(java.awt.event.ActionEvent evt) {
-					try {
-						if (undoManager.canUndo()) {
-							undoManager.undo();
+					javax.swing.SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							try {
+								if (undoManager.canUndo()) {
+									undoManager.undo();
+								}
+							} catch (javax.swing.undo.CannotUndoException e) {
+							}
 						}
-					} catch (javax.swing.undo.CannotUndoException e) {
-					}
+					});
 				}
 			});
 			textArea.getInputMap().put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Z, java.awt.event.InputEvent.CTRL_DOWN_MASK), "Undo");
 
 			textArea.getActionMap().put("Redo", new javax.swing.AbstractAction("Redo") {
 				public void actionPerformed(java.awt.event.ActionEvent evt) {
-					try {
-						if (undoManager.canRedo()) {
-							undoManager.redo();
+					javax.swing.SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							try {
+								if (undoManager.canRedo()) {
+									undoManager.redo();
+								}
+							} catch (javax.swing.undo.CannotRedoException e) {
+							}
 						}
-					} catch (javax.swing.undo.CannotRedoException e) {
-					}
+					});
 				}
 			});
 			textArea.getInputMap().put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_Y, java.awt.event.InputEvent.CTRL_DOWN_MASK), "Redo");
