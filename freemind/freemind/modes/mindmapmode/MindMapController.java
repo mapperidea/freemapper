@@ -25,6 +25,7 @@ import java.awt.Component;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
@@ -1361,6 +1362,94 @@ public class MindMapController extends ControllerAdapter implements
         return true;
     }
 }
+
+	public Action exportBranchAsMIToClipboard = new ExportBranchAsMIToClipboardAction(this);
+
+	protected class ExportBranchAsMIToClipboardAction extends AbstractAction {
+		private final MindMapController mMindMapController;
+
+		public ExportBranchAsMIToClipboardAction(MindMapController pMindMapController) {
+			super(pMindMapController.getText("export_branch_as_mi_to_clipboard.text"));
+			mMindMapController = pMindMapController;
+		}
+
+		public void actionPerformed(ActionEvent e) {
+			// Ensure only one node is selected for this action
+			if (mMindMapController.getSelecteds().size() != 1) {
+				Toolkit.getDefaultToolkit().beep(); // Provide audible feedback
+				JOptionPane.showMessageDialog(getView(),
+						"Please select exactly one node to export to clipboard.", "Selection Error",
+						JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			MindMapNode node = (MindMapNode) mMindMapController.getSelecteds().get(0);
+
+			if (getMap() == null || node == null) { // node null check is now redundant but safe
+				return; // No map or node.
+			}
+
+			try {
+				String xsltFileName = "accessories/exportMI.xsl";
+				String branchXml = mMindMapController.getBranchXml(node);
+
+				if (branchXml == null) {
+					JOptionPane.showMessageDialog(getView(),
+							"Could not generate XML for the selected branch.", "Error",
+							JOptionPane.ERROR_MESSAGE);
+					return;
+				}
+
+				// Instead of writing to a file, transform to a StringWriter
+				StringWriter resultWriter = new StringWriter();
+				boolean success = transformBranchWithXslt(xsltFileName, resultWriter, branchXml);
+
+				if (success) {
+					// Post-processing step
+					String content = resultWriter.toString().replace("§", " ");
+					
+					// Copy to clipboard
+					StringSelection stringSelection = new StringSelection(content);
+					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+					clipboard.setContents(stringSelection, null);
+
+				} else {
+					JOptionPane.showMessageDialog(getView(),
+							mMindMapController.getText("error_applying_template"), "Freemind",
+							JOptionPane.ERROR_MESSAGE);
+				}
+
+			} catch (Exception ex) {
+				freemind.main.Resources.getInstance().logException(ex);
+				JOptionPane.showMessageDialog(getView(),
+						ex.getMessage(), "Error",
+						JOptionPane.ERROR_MESSAGE);
+			}
+		}
+
+		private boolean transformBranchWithXslt(String xsltFileName, Writer resultWriter, String branchXml) throws java.io.IOException {
+			java.io.StringReader reader = new java.io.StringReader(branchXml);
+			java.net.URL xsltUrl = mMindMapController.getResource(xsltFileName);
+			if (xsltUrl == null) {
+				throw new IllegalArgumentException("Can't find " + xsltFileName + " as resource.");
+			}
+			java.io.InputStream xsltFile = xsltUrl.openStream();
+			return transform(new javax.xml.transform.stream.StreamSource(reader), xsltFile, resultWriter);
+		}
+
+		private boolean transform(javax.xml.transform.Source xmlSource, java.io.InputStream xsltStream, Writer resultWriter) {
+			javax.xml.transform.Source xsltSource = new javax.xml.transform.stream.StreamSource(xsltStream);
+			javax.xml.transform.Result result = new javax.xml.transform.stream.StreamResult(resultWriter);
+			try {
+				javax.xml.transform.TransformerFactory transFact = javax.xml.transform.TransformerFactory.newInstance();
+				javax.xml.transform.Transformer trans = transFact.newTransformer(xsltSource);
+				trans.transform(xmlSource, result);
+			} catch (Exception e) {
+				freemind.main.Resources.getInstance().logException(e);
+				return false;
+			}
+			return true;
+		}
+	}
 
 
 	private class ImportBranchAction extends AbstractAction {
