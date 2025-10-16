@@ -52,6 +52,10 @@ public class FindAndReplacePanel extends JPanel {
         findNextButton.addActionListener(listener);
     }
 
+    public void addSearchFieldActionListener(ActionListener listener) {
+        searchField.addActionListener(listener);
+    }
+
     public void addReplaceListener(ActionListener listener) {
         replaceButton.addActionListener(listener);
     }

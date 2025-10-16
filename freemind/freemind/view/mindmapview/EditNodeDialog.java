@@ -69,6 +69,7 @@ public class EditNodeDialog extends EditNodeBase {
 		private static final long serialVersionUID = 6185443281994675732L;
 		private JTextArea textArea;
 		private FindAndReplacePanel findAndReplacePanel;
+		private boolean isInFindMode = false;
 
 		LongNodeDialog() {
 			super(EditNodeDialog.this);
@@ -128,6 +129,7 @@ public class EditNodeDialog extends EditNodeBase {
 				public void actionPerformed(ActionEvent e) {
 					if (findAndReplacePanel.isVisible()) {
 						findAndReplacePanel.setVisible(false);
+						isInFindMode = false;
 						LongNodeDialog.this.pack();
 					}
 				}
@@ -137,6 +139,7 @@ public class EditNodeDialog extends EditNodeBase {
 				public void actionPerformed(ActionEvent e) {
 					if (!findAndReplacePanel.isVisible()) {
 						findAndReplacePanel.setVisible(true);
+						isInFindMode = true;
 						LongNodeDialog.this.pack();
 					}
 					findAndReplacePanel.requestFocusOnSearchField();
@@ -176,6 +179,7 @@ public class EditNodeDialog extends EditNodeBase {
 
 			findAndReplacePanel.addReplaceListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
+					isInFindMode = false;
 					String selectedText = textArea.getSelectedText();
 					if (selectedText == null) {
 						// If nothing is selected, just find the next occurrence.
@@ -192,13 +196,17 @@ public class EditNodeDialog extends EditNodeBase {
 						textArea.replaceSelection(replaceTerm);
 					}
 
-					// Find next occurrence
+					// Find next occurrence.
+					// Temporarily disable undo manager to prevent UI actions from creating unwanted undo events.
+					textArea.getDocument().removeUndoableEditListener(undoManager);
 					findAndReplacePanel.getFindNextButton().doClick();
+					textArea.getDocument().addUndoableEditListener(undoManager);
 				}
 			});
 
 			findAndReplacePanel.addReplaceAllListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
+					isInFindMode = false;
 					String searchTerm = findAndReplacePanel.getSearchTerm();
 					if (searchTerm.isEmpty()) {
 						return;
@@ -225,13 +233,39 @@ public class EditNodeDialog extends EditNodeBase {
 						sb.append(originalText.substring(index));
 						newText = sb.toString();
 					}
-					textArea.setText(newText);
+					
+					final String textToSet = newText;
+					javax.swing.SwingUtilities.invokeLater(new Runnable() {
+						public void run() {
+							final javax.swing.undo.CompoundEdit compoundEdit = new javax.swing.undo.CompoundEdit();
+							final javax.swing.event.UndoableEditListener tempListener = new javax.swing.event.UndoableEditListener() {
+								public void undoableEditHappened(javax.swing.event.UndoableEditEvent e) {
+									compoundEdit.addEdit(e.getEdit());
+								}
+							};
+
+							textArea.getDocument().removeUndoableEditListener(undoManager);
+							textArea.getDocument().addUndoableEditListener(tempListener);
+
+							textArea.setText(textToSet);
+							textArea.requestFocusInWindow();
+							findAndReplacePanel.setVisible(false);
+							LongNodeDialog.this.pack();
+
+							textArea.getDocument().removeUndoableEditListener(tempListener);
+							compoundEdit.end();
+							undoManager.addEdit(compoundEdit);
+							textArea.getDocument().addUndoableEditListener(undoManager);
+						}
+					});
 				}
 			});
 
-
-
-			// int preferredHeight = new
+			findAndReplacePanel.addSearchFieldActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					findAndReplacePanel.getFindNextButton().doClick();
+				}
+			});						// int preferredHeight = new
 			// Integer(getFrame().getProperty("el__default_window_height")).intValue();
 			int preferredHeight = getNode().getHeight();
 			preferredHeight = Math.max(
@@ -315,10 +349,24 @@ public class EditNodeDialog extends EditNodeBase {
 
 			textArea.addKeyListener(new KeyListener() {
 				public void keyPressed(KeyEvent e) {
+					// If find panel is visible and we are in find mode, Enter finds the next match
+					if (e.getKeyCode() == KeyEvent.VK_ENTER && findAndReplacePanel.isVisible() && isInFindMode) {
+						// Don't treat this as a newline or submit
+						e.consume();
+						findAndReplacePanel.getFindNextButton().doClick();
+						return; // Stop further processing of this event
+					}
+					
 					// escape key in long text editor (PN)
 					if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
 						e.consume();
-						confirmedCancel();
+						if (findAndReplacePanel.isVisible()) {
+							findAndReplacePanel.setVisible(false);
+							isInFindMode = false;
+							LongNodeDialog.this.pack();
+						} else {
+							confirmedCancel();
+						}
 					} else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 						if (enterConfirms.isSelected()
 								&& (e.getModifiers() & KeyEvent.SHIFT_MASK) != 0) {
