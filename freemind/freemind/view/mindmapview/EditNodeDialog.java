@@ -34,6 +34,8 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -42,6 +44,8 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import com.inet.jortho.SpellChecker;
 
@@ -70,16 +74,14 @@ public class EditNodeDialog extends EditNodeBase {
 		private JTextArea textArea;
 		private FindAndReplacePanel findAndReplacePanel;
 		private boolean isInFindMode = false;
+		private List<Integer> matchPositions;
+		private int currentMatchIndex;
 
 		LongNodeDialog() {
 			super(EditNodeDialog.this);
 			textArea = new JTextArea(getText());
 			textArea.setLineWrap(true);
 			textArea.setWrapStyleWord(true);
-			// wish from
-			// https://sourceforge.net/forum/message.php?msg_id=5923410
-			// textArea.setTabSize(4);
-			// wrap around words rather than characters
 
 			final JScrollPane editorScrollPane = new JScrollPane(textArea);
 			editorScrollPane
@@ -124,6 +126,8 @@ public class EditNodeDialog extends EditNodeBase {
 			// Find and Replace panel setup
 			findAndReplacePanel = new FindAndReplacePanel();
 			findAndReplacePanel.setVisible(false);
+			matchPositions = new ArrayList<Integer>();
+            currentMatchIndex = -1;
 
 			findAndReplacePanel.addCloseListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
@@ -143,6 +147,7 @@ public class EditNodeDialog extends EditNodeBase {
 						LongNodeDialog.this.pack();
 					}
 					findAndReplacePanel.requestFocusOnSearchField();
+					updateSearch();
 				}
 			};
 
@@ -150,30 +155,41 @@ public class EditNodeDialog extends EditNodeBase {
 			textArea.getInputMap().put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F, java.awt.event.InputEvent.CTRL_DOWN_MASK), "ShowFind");
 			textArea.getInputMap().put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_H, java.awt.event.InputEvent.CTRL_DOWN_MASK), "ShowFind");
 
+			findAndReplacePanel.getSearchField().getDocument().addDocumentListener(new DocumentListener() {
+                public void insertUpdate(DocumentEvent e) { updateSearch(); }
+                public void removeUpdate(DocumentEvent e) { updateSearch(); }
+                public void changedUpdate(DocumentEvent e) { updateSearch(); }
+            });
+
+            findAndReplacePanel.addMatchCaseListener(new ActionListener() {
+                public void actionPerformed(ActionEvent e) {
+                    updateSearch();
+                }
+            });
+
 			findAndReplacePanel.addFindNextListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					String searchTerm = findAndReplacePanel.getSearchTerm();
-					if (searchTerm.isEmpty()) {
+					if (matchPositions.isEmpty()) {
 						return;
 					}
-					String text = textArea.getText();
-					boolean matchCase = findAndReplacePanel.isMatchCase();
-
-					String textToSearch = matchCase ? text : text.toLowerCase();
-					String termToSearch = matchCase ? searchTerm : searchTerm.toLowerCase();
-
-					int fromIndex = textArea.getCaretPosition();
-					int start = textToSearch.indexOf(termToSearch, fromIndex);
-
-					if (start == -1) { // Not found from caret, try from beginning
-						start = textToSearch.indexOf(termToSearch, 0);
+					currentMatchIndex++;
+					if (currentMatchIndex >= matchPositions.size()) {
+						currentMatchIndex = 0; // Wrap around
 					}
+					highlightCurrentMatch();
+				}
+			});
 
-					if (start != -1) { // Found
-						int end = start + searchTerm.length();
-						textArea.select(start, end);
-						textArea.requestFocusInWindow();
-					} 
+			findAndReplacePanel.addFindPreviousListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					if (matchPositions.isEmpty()) {
+						return;
+					}
+					currentMatchIndex--;
+					if (currentMatchIndex < 0) {
+						currentMatchIndex = matchPositions.size() - 1; // Wrap around
+					}
+					highlightCurrentMatch();
 				}
 			});
 
@@ -181,26 +197,46 @@ public class EditNodeDialog extends EditNodeBase {
 				public void actionPerformed(ActionEvent e) {
 					isInFindMode = false;
 					String selectedText = textArea.getSelectedText();
+			
 					if (selectedText == null) {
 						// If nothing is selected, just find the next occurrence.
 						findAndReplacePanel.getFindNextButton().doClick();
 						return;
 					}
+			
 					String searchTerm = findAndReplacePanel.getSearchTerm();
 					boolean matchCase = findAndReplacePanel.isMatchCase();
-
 					boolean selectionMatches = matchCase ? selectedText.equals(searchTerm) : selectedText.equalsIgnoreCase(searchTerm);
-
+			
 					if (selectionMatches) {
-						String replaceTerm = findAndReplacePanel.getReplaceTerm();
+						// This is the path where the bug occurs. Apply the robust CompoundEdit pattern here.
+						final String replaceTerm = findAndReplacePanel.getReplaceTerm();
+			
+						final javax.swing.undo.CompoundEdit compoundEdit = new javax.swing.undo.CompoundEdit();
+						final javax.swing.event.UndoableEditListener tempListener = new javax.swing.event.UndoableEditListener() {
+							public void undoableEditHappened(javax.swing.event.UndoableEditEvent evt) {
+								compoundEdit.addEdit(evt.getEdit());
+							}
+						};
+			
+						textArea.getDocument().removeUndoableEditListener(undoManager);
+						textArea.getDocument().addUndoableEditListener(tempListener);
+			
+						// Actions to group:
 						textArea.replaceSelection(replaceTerm);
+						updateSearch();
+						findAndReplacePanel.getFindNextButton().doClick();
+			
+						// Finalize
+						textArea.getDocument().removeUndoableEditListener(tempListener);
+						compoundEdit.end();
+						undoManager.addEdit(compoundEdit);
+						textArea.getDocument().addUndoableEditListener(undoManager);
+			
+					} else {
+						// If selection doesn't match, just find next. No text change, no bug.
+						findAndReplacePanel.getFindNextButton().doClick();
 					}
-
-					// Find next occurrence.
-					// Temporarily disable undo manager to prevent UI actions from creating unwanted undo events.
-					textArea.getDocument().removeUndoableEditListener(undoManager);
-					findAndReplacePanel.getFindNextButton().doClick();
-					textArea.getDocument().addUndoableEditListener(undoManager);
 				}
 			});
 
@@ -265,7 +301,9 @@ public class EditNodeDialog extends EditNodeBase {
 				public void actionPerformed(ActionEvent e) {
 					findAndReplacePanel.getFindNextButton().doClick();
 				}
-			});						// int preferredHeight = new
+			});
+
+			// int preferredHeight = new
 			// Integer(getFrame().getProperty("el__default_window_height")).intValue();
 			int preferredHeight = getNode().getHeight();
 			preferredHeight = Math.max(
@@ -465,6 +503,46 @@ public class EditNodeDialog extends EditNodeBase {
 				SpellChecker.register(textArea, false, true, true, true);
 			}
 		}
+
+		private void updateSearch() {
+            String searchTerm = findAndReplacePanel.getSearchTerm();
+
+            if (searchTerm.isEmpty()) {
+                matchPositions.clear();
+                currentMatchIndex = -1;
+                findAndReplacePanel.updateMatchCount(0, 0);
+                return;
+            }
+
+            matchPositions.clear();
+            currentMatchIndex = -1;
+
+            String text = textArea.getText();
+			boolean matchCase = findAndReplacePanel.isMatchCase();
+            String textToSearch = matchCase ? text : text.toLowerCase();
+            String termToSearch = matchCase ? searchTerm : searchTerm.toLowerCase();
+
+            int index = textToSearch.indexOf(termToSearch);
+            while (index >= 0) {
+                matchPositions.add(index);
+                index = textToSearch.indexOf(termToSearch, index + 1);
+            }
+
+            findAndReplacePanel.updateMatchCount(0, matchPositions.size());
+        }
+
+        private void highlightCurrentMatch() {
+            if (currentMatchIndex >= 0 && currentMatchIndex < matchPositions.size()) {
+                int start = matchPositions.get(currentMatchIndex);
+                int end = start + findAndReplacePanel.getSearchTerm().length();
+                textArea.select(start, end);
+                textArea.requestFocusInWindow();
+                findAndReplacePanel.updateMatchCount(currentMatchIndex + 1, matchPositions.size());
+            } else {
+                textArea.select(textArea.getCaretPosition(), textArea.getCaretPosition());
+                findAndReplacePanel.updateMatchCount(0, matchPositions.size());
+            }
+        }
 
 		public void show() {
 			textArea.requestFocus();
