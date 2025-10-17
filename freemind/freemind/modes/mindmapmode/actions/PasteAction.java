@@ -761,12 +761,19 @@ public class PasteAction extends AbstractAction implements ActorXml {
 
 				// Criar o nó e adicionar o ícone
 				node = mMindMapController.newNode(nodeText, parent.getMap());
+				
+				// Tenta obter o nome do ícone a partir do mapa de atalhos.
 				String iconName = mapperIdeaIconMap.get(shortcut);
-				if (iconName != null) {
-					MindIcon icon = MindIcon.factory(iconName);
-					if (icon != null) {
-						node.addIcon(icon, 0);
-					}
+				
+				// Se não for um atalho, assume que o texto capturado é o nome completo do ícone.
+				if (iconName == null) {
+					iconName = shortcut;
+				}
+				
+				// Tenta criar e adicionar o ícone.
+				MindIcon icon = MindIcon.factory(iconName);
+				if (icon != null) {
+					node.addIcon(icon, 0);
 				}
 			} else {
 				// Caso C: Comportamento padrão para linhas sem ícone
