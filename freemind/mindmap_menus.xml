@@ -12,6 +12,7 @@
 			<menu_submenu name="export"  name_ref="menu_file_export">
 				<menu_action field="exportBranch" key_ref="keystroke_export_branch"/>
 				<menu_action field='exportBranchAsMI' name="export_branch_as_mi"/>
+				<menu_action field="exportBranchAsMIToClipboard" name="export_branch_as_mi_to_clipboard" key_ref="keystroke_export_branch_as_mi_to_clipboard"/>
 				<menu_separator/>
 				<menu_category name="html">
 					<menu_action field="exportToHTML" key_ref="keystroke_export_to_html"/>

@@ -1373,59 +1373,62 @@ public class MindMapController extends ControllerAdapter implements
 			mMindMapController = pMindMapController;
 		}
 
-		public void actionPerformed(ActionEvent e) {
-			// Ensure only one node is selected for this action
-			if (mMindMapController.getSelecteds().size() != 1) {
-				Toolkit.getDefaultToolkit().beep(); // Provide audible feedback
-				JOptionPane.showMessageDialog(getView(),
-						"Please select exactly one node to export to clipboard.", "Selection Error",
-						JOptionPane.WARNING_MESSAGE);
-				return;
-			}
-			MindMapNode node = (MindMapNode) mMindMapController.getSelecteds().get(0);
-
-			if (getMap() == null || node == null) { // node null check is now redundant but safe
-				return; // No map or node.
-			}
-
-			try {
-				String xsltFileName = "accessories/exportMI.xsl";
-				String branchXml = mMindMapController.getBranchXml(node);
-
-				if (branchXml == null) {
-					JOptionPane.showMessageDialog(getView(),
-							"Could not generate XML for the selected branch.", "Error",
-							JOptionPane.ERROR_MESSAGE);
-					return;
-				}
-
-				// Instead of writing to a file, transform to a StringWriter
-				StringWriter resultWriter = new StringWriter();
-				boolean success = transformBranchWithXslt(xsltFileName, resultWriter, branchXml);
-
-				if (success) {
-					// Post-processing step
-					String content = resultWriter.toString().replace("§", " ");
-					
-					// Copy to clipboard
-					StringSelection stringSelection = new StringSelection(content);
-					Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
-					clipboard.setContents(stringSelection, null);
-
-				} else {
-					JOptionPane.showMessageDialog(getView(),
-							mMindMapController.getText("error_applying_template"), "Freemind",
-							JOptionPane.ERROR_MESSAGE);
-				}
-
-			} catch (Exception ex) {
-				freemind.main.Resources.getInstance().logException(ex);
-				JOptionPane.showMessageDialog(getView(),
-						ex.getMessage(), "Error",
-						JOptionPane.ERROR_MESSAGE);
-			}
-		}
-
+		        public void actionPerformed(ActionEvent e) {
+		            // Get selection directly from the view, which is more reliable for global shortcuts.
+		            List selectedNodes = mMindMapController.getView().getSelectedNodesSortedByY();
+		
+		            // Ensure exactly one node is selected.
+		            if (selectedNodes.size() != 1) {
+		                Toolkit.getDefaultToolkit().beep();
+		                JOptionPane.showMessageDialog(getView(),
+		                        "Please select exactly one node to export to clipboard.", "Selection Error",
+		                        JOptionPane.WARNING_MESSAGE);
+		                return;
+		            }
+		
+		            MindMapNode node = (MindMapNode) selectedNodes.get(0);
+		
+		            if (getMap() == null) { 
+		                return; // No map.
+		            }
+		
+		            try {
+		                String xsltFileName = "accessories/exportMI.xsl";
+		                String branchXml = mMindMapController.getBranchXml(node);
+		
+		                if (branchXml == null) {
+		                    JOptionPane.showMessageDialog(getView(),
+		                            "Could not generate XML for the selected branch.", "Error",
+		                            JOptionPane.ERROR_MESSAGE);
+		                    return;
+		                }
+		
+		                // Instead of writing to a file, transform to a StringWriter
+		                StringWriter resultWriter = new StringWriter();
+		                boolean success = transformBranchWithXslt(xsltFileName, resultWriter, branchXml);
+		
+		                if (success) {
+		                    // Post-processing step
+		                    String content = resultWriter.toString().replace("§", " ");
+		                    
+		                    // Copy to clipboard
+		                    StringSelection stringSelection = new StringSelection(content);
+		                    Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+		                    clipboard.setContents(stringSelection, null);
+		
+		                } else {
+		                    JOptionPane.showMessageDialog(getView(),
+		                            mMindMapController.getText("error_applying_template"), "Freemind",
+		                            JOptionPane.ERROR_MESSAGE);
+		                }
+		
+		            } catch (Exception ex) {
+		                freemind.main.Resources.getInstance().logException(ex);
+		                JOptionPane.showMessageDialog(getView(),
+		                        ex.getMessage(), "Error",
+		                        JOptionPane.ERROR_MESSAGE);
+		            }
+		        }
 		private boolean transformBranchWithXslt(String xsltFileName, Writer resultWriter, String branchXml) throws java.io.IOException {
 			java.io.StringReader reader = new java.io.StringReader(branchXml);
 			java.net.URL xsltUrl = mMindMapController.getResource(xsltFileName);
