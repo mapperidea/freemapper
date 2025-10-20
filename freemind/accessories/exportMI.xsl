@@ -14,32 +14,37 @@
 
         <xsl:value-of select="$indent"/>
 
-        <xsl:choose>
-            <xsl:when test="icon/@BUILTIN = 'element'">[e] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'tag_green'">[v] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Descriptor.grouping'">[g] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'bricks'">[g] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Package'">[p] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Descriptor.class'">[c] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Descriptor.bean'">[b] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Mapping.directToField'">[d] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Mapping.oneToOne'">[r] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Mapping.oneToMany'">[o] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Mapping.manyToOne'">[m] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Method.public'">[x] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'tag_yellow'">[y] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'elementOutput'">[x] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'Mapping.directMap'">[h] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'textNode'">[t] </xsl:when>
-            <xsl:when test="icon/@BUILTIN = 'bullet_key'">[k] </xsl:when>
-            <xsl:otherwise>
-                <xsl:if test="icon/@BUILTIN">
-                    <xsl:text>[</xsl:text>
-                    <xsl:value-of select="icon/@BUILTIN"/>
-                    <xsl:text>] </xsl:text>
-                </xsl:if>
-            </xsl:otherwise>
-        </xsl:choose>
+        <xsl:if test="icon">
+            <xsl:text>[</xsl:text>
+            <xsl:for-each select="icon">
+                <xsl:variable name="iconName" select="@BUILTIN"/>
+                <xsl:variable name="shortcut">
+                    <xsl:choose>
+                        <xsl:when test="$iconName = 'element'">e</xsl:when>
+                        <xsl:when test="$iconName = 'tag_green'">v</xsl:when>
+                        <xsl:when test="$iconName = 'Descriptor.grouping'">g</xsl:when>
+                        <xsl:when test="$iconName = 'bricks'">g</xsl:when>
+                        <xsl:when test="$iconName = 'Package'">p</xsl:when>
+                        <xsl:when test="$iconName = 'Descriptor.class'">c</xsl:when>
+                        <xsl:when test="$iconName = 'Descriptor.bean'">b</xsl:when>
+                        <xsl:when test="$iconName = 'Mapping.directToField'">d</xsl:when>
+                        <xsl:when test="$iconName = 'Mapping.oneToOne'">r</xsl:when>
+                        <xsl:when test="$iconName = 'Mapping.oneToMany'">o</xsl:when>
+                        <xsl:when test="$iconName = 'Mapping.manyToOne'">m</xsl:when>
+                        <xsl:when test="$iconName = 'Method.public'">x</xsl:when>
+                        <xsl:when test="$iconName = 'tag_yellow'">y</xsl:when>
+                        <xsl:when test="$iconName = 'elementOutput'">x</xsl:when>
+                        <xsl:when test="$iconName = 'Mapping.directMap'">h</xsl:when>
+                        <xsl:when test="$iconName = 'textNode'">t</xsl:when>
+                        <xsl:when test="$iconName = 'bullet_key'">k</xsl:when>
+                        <xsl:otherwise><xsl:value-of select="$iconName"/></xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:value-of select="$shortcut"/>
+                <xsl:if test="position() != last()"><xsl:text>, </xsl:text></xsl:if>
+            </xsl:for-each>
+            <xsl:text>] </xsl:text>
+        </xsl:if>
 
         <xsl:variable name="nodeText" select="@TEXT"/>
         
