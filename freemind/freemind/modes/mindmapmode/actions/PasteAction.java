@@ -630,7 +630,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
         }
     }
 
-    static final Pattern nonLinkCharacter = Pattern.compile("[ \n()\'\",;]");
+    // static final Pattern nonLinkCharacter = Pattern.compile("[ \n()\\'\\',;]");
 
     private MindMapNode createNodeFromLine(String lineContent, MindMap map, java.util.List<String> outShortcuts) {
  		// Regex para encontrar uma lista de valores separados por vírgula dentro de colchetes no início da linha.
@@ -729,7 +729,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
         parentNodes.add(parent);
         parentNodesDepths.add(new Integer(-1));
 
-        String[] linkPrefixes = { "http://", "ftp://", "https://" };
+        // String[] linkPrefixes = { "http://", "ftp://", "https://" };
 
         MindMapNode pastedNode = null;
         MindMapNode lastCreatedNode = null;
@@ -779,7 +779,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
                 hashDepth = -1;
             }
 
-            if (lineContent.startsWith("| ") && "v".equals(lastUsedShortcut) && lastCreatedNode != null) {
+            if (lineContent.startsWith("| ") && lastCreatedNode != null) {
                 String continuationText = lineContent.substring(2);
                 lastCreatedNode.setText(lastCreatedNode.getText() + "\n" + continuationText);
                 continue;
@@ -803,6 +803,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
             lastCreatedNode = node;
             lastUsedShortcut = shortcut;
 
+            /*
             // Heuristically determine, if there is a link. Because this is
             // heuristic, it is probable that it can be improved to include
             // some matches or exclude some matches.
@@ -820,6 +821,7 @@ public class PasteAction extends AbstractAction implements ActorXml {
                     node.setLink(text.substring(linkStart, linkEnd));
                 }
             }
+            */
 
             // Determine parent among candidate parents
             // Change the array of candidate parents accordingly
