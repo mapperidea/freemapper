@@ -634,7 +634,9 @@ public class PasteAction extends AbstractAction implements ActorXml {
 
     private MindMapNode createNodeFromLine(String lineContent, MindMap map, java.util.List<String> outShortcuts) {
  		// Regex para encontrar uma lista de valores separados por vírgula dentro de colchetes no início da linha.
- 		Pattern iconListPattern = Pattern.compile("^\\[([\\w\\.,\\s]+)\\]\\s*");
+        // O Pattern abaixo, fazia com que ele ignorasse o espaço em branco pós o delimitador, perdia a identação do texto.
+        // Pattern iconListPattern = Pattern.compile("^\\[([\\w\\.,\\s]+)\\]\\s*");
+        Pattern iconListPattern = Pattern.compile("^\\[([\\w\\.,\\s]+)\\]\\s");
  		Matcher iconListMatcher = iconListPattern.matcher(lineContent);
 		
  		String nodeText;
