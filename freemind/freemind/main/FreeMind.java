@@ -96,6 +96,9 @@ import freemind.view.mindmapview.MapView;
 
 public class FreeMind extends JFrame implements FreeMindMain {
 
+	private ThemeManager themeManager;
+
+
 	public static final String J_SPLIT_PANE_SPLIT_TYPE = "JSplitPane.SPLIT_TYPE";
 
 	public static final String VERTICAL_SPLIT_BELOW = "vertical_split_below";
@@ -278,6 +281,8 @@ public class FreeMind extends JFrame implements FreeMindMain {
 		defProps = pDefaultPreferences;
 		props = pUserPreferences;
 		autoPropertiesFile = pAutoPropertiesFile;
+		themeManager = new ThemeManager(this);
+
 		if (logger == null) {
 			logger = getLogger(FreeMind.class.getName());
 			StringBuffer info = new StringBuffer();
@@ -303,16 +308,30 @@ public class FreeMind extends JFrame implements FreeMindMain {
 			info.append("; os_name = ");
 			info.append(System.getProperty("os.name"));
 			info.append("; os_version = ");
-			info.append(System.getProperty("os.version"));
-			logger.info(info.toString());
-		}
-		mFreeMindCommon = new FreeMindCommon(this);
-		Resources.createInstance(this);
-	}
-
-	void init(FeedBack feedback) {
-		/* This is only for apple but does not harm for the others. */
-		System.setProperty("apple.laf.useScreenMenuBar", "true");
+			            info.append(System.getProperty("os.version"));
+			            logger.info(info.toString());
+			        }
+			        mFreeMindCommon = new FreeMindCommon(this);
+			        Resources.createInstance(this);
+			    }
+			
+			    public ThemeManager getThemeManager() {
+			        return themeManager;
+			    }
+			
+			    	private void setThemeColors() {
+			    		props.setProperty(RESOURCES_BACKGROUND_COLOR, getProperty(themeManager.getCurrentTheme() + "." + RESOURCES_BACKGROUND_COLOR));
+			    		props.setProperty(RESOURCES_NODE_TEXT_COLOR, getProperty(themeManager.getCurrentTheme() + "." + RESOURCES_NODE_TEXT_COLOR));
+			    		props.setProperty(RESOURCES_SELECTED_NODE_COLOR, getProperty(themeManager.getCurrentTheme() + "." + RESOURCES_SELECTED_NODE_COLOR));
+			    		props.setProperty(RESOURCES_SELECTED_NODE_RECTANGLE_COLOR, getProperty(themeManager.getCurrentTheme() + "." + RESOURCES_SELECTED_NODE_RECTANGLE_COLOR));
+			    		props.setProperty(RESOURCES_EDGE_COLOR, getProperty(themeManager.getCurrentTheme() + "." + RESOURCES_EDGE_COLOR));
+			    		props.setProperty(RESOURCES_CLOUD_COLOR, getProperty(themeManager.getCurrentTheme() + "." + RESOURCES_CLOUD_COLOR));
+			    		props.setProperty(RESOURCES_LINK_COLOR, getProperty(themeManager.getCurrentTheme() + "." + RESOURCES_LINK_COLOR));
+			    		updateLookAndFeel();
+			    	}			
+			    void init(FeedBack feedback) {
+			        themeManager.applyTheme();
+			        /* This is only for apple but does not harm for the others. */		System.setProperty("apple.laf.useScreenMenuBar", "true");
 		patternsFile = new File(getFreemindDirectory(),
 				getDefaultProperty("patternsfile"));
 
@@ -376,7 +395,7 @@ public class FreeMind extends JFrame implements FreeMindMain {
 	/**
 	 * 
 	 */
-	private void updateLookAndFeel() {
+	public void updateLookAndFeel() {
 		// set Look&Feel
 		try {
 			String lookAndFeel = props.getProperty(RESOURCE_LOOKANDFEEL);

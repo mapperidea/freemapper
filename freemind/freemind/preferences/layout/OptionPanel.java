@@ -72,6 +72,7 @@ import freemind.controller.actions.generated.instance.OptionPanelWindowConfigura
 import freemind.controller.actions.generated.instance.WindowConfigurationStorage;
 import freemind.main.FreeMind;
 import freemind.main.FreeMindCommon;
+import freemind.main.ThemeManager;
 import freemind.main.Tools;
 import freemind.modes.IconInformation;
 import freemind.modes.MindIcon;
@@ -149,6 +150,9 @@ public class OptionPanel implements TextTranslator {
 				// grep -e \"\\.(java|xml):\"");
 				final String label = bean.getLabel();
 				String value = fmMain.getAdjustableProperty(label);
+				if (label.equals("theme")) {
+				    value = fmMain.getThemeManager().getCurrentTheme();
+				}
 				// System.out.println("Setting property " + bean.getLabel()
 				// + " to " + value);
 				bean.setValue(value);
@@ -163,8 +167,12 @@ public class OptionPanel implements TextTranslator {
 			if (control instanceof PropertyBean) {
 				PropertyBean bean = (PropertyBean) control;
 				final String value = bean.getValue();
-				if (value != null)
+				if (value != null) {
+				    if (bean.getLabel().equals("theme")) {
+				        fmMain.getThemeManager().setCurrentTheme(value);
+				    }
 					p.setProperty(bean.getLabel(), value);
+				}
 			}
 		}
 		return p;
@@ -652,6 +660,8 @@ public class OptionPanel implements TextTranslator {
 		 */
 		controls.add(new NewTabProperty("Appearance"));
 		controls.add(new SeparatorProperty("look_and_feel"));
+		controls.add(new ComboProperty("theme.tooltip", "theme", ThemeManager.getThemeNames(), this));
+
 		LookAndFeelInfo[] lafInfo = UIManager.getInstalledLookAndFeels();
 		int reservedCount = 6;
 		String[] lafNames = new String[lafInfo.length + reservedCount];
