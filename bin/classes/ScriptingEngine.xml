@@ -37,4 +37,46 @@
         <plugin_property name="ScriptLocation" value="/home/foltin/test.groovy" />
 	</plugin_action> 
 -->
+    <plugin_action
+        name="HelloWorldScript"
+        documentation="Executa um script de exemplo que mostra o texto do nó."
+        label="Exemplo: Olá Mundo Script"
+        base="freemind.extensions.ModeControllerHookAdapter"
+        class_name="plugins.script.ScriptingEngine">
+
+        <plugin_mode class_name="freemind.modes.mindmapmode"/>
+        <!-- Localização no menu: Ferramentas -> Scripting -> (Seu Script) -->
+        <plugin_menu location="menu_bar/extras/first/scripting/hello_world"/>
+        <!-- Caminho para o seu script, relativo à pasta 'freemind/' -->
+        <plugin_property name="ScriptLocation" value="accessories/hello_world.groovy" />
+
+    </plugin_action>
+	<!-- Testando outro-->
+	<plugin_action
+        name="ListChildrenScript"
+        documentation="Executa um script de exemplo que mostra os filhos do nó."
+        label="Exemplo: Listar Filhos do Nó"
+        base="freemind.extensions.ModeControllerHookAdapter"
+        class_name="plugins.script.ScriptingEngine">
+
+        <plugin_mode class_name="freemind.modes.mindmapmode"/>
+        <plugin_menu location="menu_bar/extras/first/scripting/list_children"/>
+        <plugin_property name="ScriptLocation" value="accessories/list_children.groovy" />
+
+    </plugin_action>
+
+    <!-- Ação para o script 'Mapper Idea Contextual Generator' -->
+    <plugin_action
+        name="MapperComplete"
+        documentation="Gera filhos contextuais para um nó com base na gramática do Mapper Idea."
+        label="Mapper Idea: Map Complete"
+        key_stroke="alt shift G"
+        base="freemind.extensions.ModeControllerHookAdapter"
+        class_name="plugins.script.ScriptingEngine">
+
+        <plugin_mode class_name="freemind.modes.mindmapmode"/>
+        <plugin_menu location="menu_bar/extras/first/scripting/mapper_idea_map_complete"/>
+        <plugin_property name="ScriptLocation" value="accessories/mapper_idea_map_complete.groovy" />
+
+    </plugin_action>
 </plugin>
