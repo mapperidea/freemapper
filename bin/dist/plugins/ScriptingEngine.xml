@@ -79,4 +79,19 @@
         <plugin_property name="ScriptLocation" value="accessories/mapper_idea_map_complete.groovy" />
 
     </plugin_action>
+
+    <!-- Ação para o script 'Salvar/Restaurar Contexto' -->
+    <plugin_action
+        name="SaveRestoreContextScript"
+        documentation="Salva a posição de um nó e permite retornar a ele posteriormente."
+        label="Mapper Idea: Salvar/Restaurar Contexto"
+        key_stroke="alt shift J"
+        base="freemind.extensions.ModeControllerHookAdapter"
+        class_name="plugins.script.ScriptingEngine">
+
+        <plugin_mode class_name="freemind.modes.mindmapmode"/>
+        <plugin_menu location="menu_bar/extras/first/scripting/save_restore_context"/>
+        <plugin_property name="ScriptLocation" value="accessories/save_restore_context.groovy" />
+    </plugin_action>
+
 </plugin>
