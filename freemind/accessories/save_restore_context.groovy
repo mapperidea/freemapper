@@ -1,65 +1,80 @@
 import freemind.main.Resources
 import freemind.modes.MindMapNode
-import freemind.modes.ModeController // Para o getNodeFromID
-import javax.swing.JOptionPane
-import java.util.ArrayList // Para o displayNode, se necessário
-
-// A variável 'c' (MindMapController) é injetada automaticamente.
-// Ela estende ModeController, então pode ser usada para getNodeFromID.
+import freemind.modes.ModeController
 
 def props = Resources.getInstance().getProperties()
 def savedNodeId = props.getProperty("mapperidea.temp.savedNodeId")
-def savedNodeMapPath = props.getProperty("mapperidea.temp.savedNodeMapPath") // Caminho do mapa onde o nó foi salvo
+def savedNodeMapPath = props.getProperty("mapperidea.temp.savedNodeMapPath")
 def currentMapPath = c.getMap().getFile() != null ? c.getMap().getFile().getAbsolutePath() : null
 
-// Verifica se o contexto foi salvo em outro mapa
+// --- LIMPEZA DE CONTEXTO ---
 if (savedNodeId && savedNodeMapPath && currentMapPath && !savedNodeMapPath.equals(currentMapPath)) {
-    c.getFrame().out("Contexto salvo em outro mapa: " + savedNodeMapPath + ". Limpando contexto.")
     props.remove("mapperidea.temp.savedNodeId")
     props.remove("mapperidea.temp.savedNodeMapPath")
     savedNodeId = null
 }
 
 if (savedNodeId) {
-    // --- ESTADO 2: CONTEXTO SALVO, RESTAURAR ---
-    
-    // Tenta obter o nó usando o ID
+    // --- ESTADO 2: VOLTAR ---
     MindMapNode nodeToRestore = c.getNodeFromID(savedNodeId)
-    
     if (nodeToRestore != null) {
-        // Assegura que o nó esteja visível (desdobrando o caminho até ele)
-        // c.displayNode(node) já faz isso e centraliza
         c.displayNode(nodeToRestore)
-        c.centerNode(nodeToRestore) // Centraliza o nó na tela
-        c.getFrame().out("Contexto restaurado para: " + nodeToRestore.getPlainTextContent())
-    } else {
-        c.getFrame().out("Nó salvo não encontrado no mapa atual. O contexto foi limpo.")
+        c.centerNode(nodeToRestore)
+        c.getFrame().out("Retornou ao nó original.")
     }
-    
-    // Limpa o estado para a próxima execução
     props.remove("mapperidea.temp.savedNodeId")
     props.remove("mapperidea.temp.savedNodeMapPath")
 
 } else {
-    // --- ESTADO 1: NENHUM CONTEXTO, SALVAR ---
-    
+    // --- ESTADO 1: BUSCAR E SALVAR ---
     MindMapNode selectedNode = c.getSelected()
-    if (selectedNode != null) {
-        String nodeId = selectedNode.getObjectId(c)
-        String nodeText = selectedNode.getPlainTextContent()
+    if (selectedNode == null) return
+
+    def parent = selectedNode.getParentNode()
+    String nodeText = selectedNode.getPlainTextContent()
+
+    // Verifica se estamos sob um 'write-pattern'
+    if (parent != null && parent.getPlainTextContent() == "write-pattern") {
         
-        if (nodeId != null && !nodeId.isEmpty()) {
-            // Salva o ID do nó e o caminho do mapa nas propriedades do usuário
-            props.setProperty("mapperidea.temp.savedNodeId", nodeId)
-            props.setProperty("mapperidea.temp.savedNodeMapPath", currentMapPath != null ? currentMapPath : "unnamed_map")
+        MindMapNode patternsRoot = findNodeByText(c.getRootNode(), "patterns")
+        
+        if (patternsRoot != null) {
+            // Busca recursiva pelo texto em qualquer nível abaixo de 'patterns'
+            MindMapNode targetNode = findNodeByText(patternsRoot, nodeText, true)
             
-            // Exibe feedback na barra de status
-            String statusMessage = "Contexto salvo: " + (nodeText.length() > 50 ? nodeText.substring(0, 50) + "..." : nodeText)
-            c.getFrame().out(statusMessage)
+            if (targetNode != null && targetNode != patternsRoot) {
+                // SÓ SALVA O CONTEXTO SE ENCONTRAR O DESTINO
+                props.setProperty("mapperidea.temp.savedNodeId", selectedNode.getObjectId(c))
+                props.setProperty("mapperidea.temp.savedNodeMapPath", currentMapPath ?: "unnamed_map")
+                
+                c.displayNode(targetNode)
+                c.centerNode(targetNode)
+                c.getFrame().out("Padrão encontrado e contexto salvo.")
+            } else {
+                c.getFrame().out("Alvo '" + nodeText + "' não encontrado em 'patterns'. Contexto não salvo.")
+            }
         } else {
-             c.getFrame().out("Não foi possível obter um ID único para o nó selecionado. Contexto não salvo.")
+            c.getFrame().out("Nó raiz 'patterns' não encontrado.")
         }
     } else {
-        c.getFrame().out("Nenhum nó selecionado para salvar o contexto.")
+        // Comportamento padrão: se não for write-pattern, apenas salva o contexto normalmente
+        props.setProperty("mapperidea.temp.savedNodeId", selectedNode.getObjectId(c))
+        props.setProperty("mapperidea.temp.savedNodeMapPath", currentMapPath ?: "unnamed_map")
+        c.getFrame().out("Contexto salvo (nó comum).")
     }
+}
+
+/**
+ * Busca recursiva por um nó. 
+ * @param excludeRoot Se true, não valida o próprio nó inicial da busca (útil para buscar filhos)
+ */
+MindMapNode findNodeByText(MindMapNode startNode, String text, boolean excludeRoot = false) {
+    if (!excludeRoot && startNode.getPlainTextContent() == text) {
+        return startNode
+    }
+    for (MindMapNode child : startNode.getChildren()) {
+        def found = findNodeByText(child, text, false)
+        if (found != null) return found
+    }
+    return null
 }
