@@ -64,6 +64,7 @@ import java.util.logging.Logger;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.BorderFactory; // MODIFICADO: Import adicionado
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
@@ -80,6 +81,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.JToolBar;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager; // MODIFICADO: Import adicionado
 import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -115,8 +117,7 @@ import freemind.view.mindmapview.MapView;
 public class Controller implements MapModuleChangeObserver {
 
 	/**
-	 * 
-	 */
+	 * */
 	private static final String PAGE_FORMAT_PROPERTY = "page_format";
 	private HashSet mMapTitleChangeListenerSet = new HashSet();
 	private HashSet mZoomListenerSet = new HashSet();
@@ -373,7 +374,7 @@ public class Controller implements MapModuleChangeObserver {
 
 	/**
 	 * @return the current modeController, or null, if FreeMind is just starting
-	 *         and there is no modeController present.
+	 * and there is no modeController present.
 	 */
 	public ModeController getModeController() {
 		if (getMapModule() != null) {
@@ -663,8 +664,7 @@ public class Controller implements MapModuleChangeObserver {
 	 * Creates a new mode (controller), activates the toolbars, title and
 	 * deactivates all actions. Does nothing, if the mode is identical to the
 	 * current mode.
-	 * 
-	 * @return false if the change was not successful.
+	 * * @return false if the change was not successful.
 	 */
 	public boolean createNewMode(String mode) {
 		if (getMode() != null && mode.equals(getMode().toString())) {
@@ -766,9 +766,8 @@ public class Controller implements MapModuleChangeObserver {
 
 	/**
 	 * Closes the actual map.
-	 * 
-	 * @param force
-	 *            true= without save.
+	 * * @param force
+	 * true= without save.
 	 */
 	public void close(boolean force) {
 		getMapModuleManager().close(force, null);
@@ -1274,7 +1273,7 @@ public class Controller implements MapModuleChangeObserver {
 	public interface LocalLinkConverter {
 		/**
 		 * @throws MalformedURLException
-		 *             if the conversion didn't work
+		 * if the conversion didn't work
 		 */
 		URL convertLocalLink(String link) throws MalformedURLException;
 	}
@@ -1759,9 +1758,9 @@ public class Controller implements MapModuleChangeObserver {
 
 	/**
 	 * @param listener
-	 *            The new listener. All currently available properties are sent
-	 *            to the listener after registration. Here, the oldValue
-	 *            parameter is set to null.
+	 * The new listener. All currently available properties are sent
+	 * to the listener after registration. Here, the oldValue
+	 * parameter is set to null.
 	 */
 	public static void addPropertyChangeListenerAndPropagate(
 			FreemindPropertyListener listener) {
@@ -1780,8 +1779,7 @@ public class Controller implements MapModuleChangeObserver {
 
 	/**
 	 * @author foltin
-	 * 
-	 */
+	 * */
 	public class PropertyAction extends AbstractAction {
 
 		private final Controller controller;
@@ -2000,6 +1998,90 @@ public class Controller implements MapModuleChangeObserver {
 						: RenderingHints.VALUE_ANTIALIAS_OFF);
 	}
 
+    // MODIFICADO: Métodos auxiliares para Custom Tab Components
+	private JPanel createTabComponent(String title) {
+        JPanel tabPanel = new JPanel(new BorderLayout());
+        tabPanel.setOpaque(true); 
+        
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setOpaque(false);
+        
+        // ALTERAÇÃO AQUI: 
+        // Define margens: 2px (Topo), 5px (Esquerda), 2px (Base), 5px (Direita)
+        // Isso "empurra" a borda para fora, criando o efeito de botão/etiqueta
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5)); 
+        
+        tabPanel.add(titleLabel, BorderLayout.CENTER);
+        return tabPanel;
+    }
+
+	private void highlightActiveTab() {
+        if (mTabbedPane == null) {
+            return;
+        }
+
+        int selectedIndex = mTabbedPane.getSelectedIndex();
+        
+        // COR NEUTRA INTELIGENTE:
+        // Tenta pegar a cor de seleção de listas do próprio tema (geralmente um cinza ou azul sóbrio)
+        Color activeHighlight = UIManager.getColor("List.selectionBackground");
+        Color activeForeground = UIManager.getColor("List.selectionForeground");
+
+        // Fallback: Se o tema não informar cor, usa um Cinza Médio (funciona no claro e no escuro)
+        if (activeHighlight == null) {
+            activeHighlight = new Color(160, 160, 160); 
+            activeForeground = Color.BLACK;
+        }
+
+        // Cor padrão do fundo da aba (para as inativas)
+        Color defaultBg = UIManager.getColor("TabbedPane.background");
+        // Fallback para cor padrão se falhar
+        if (defaultBg == null) defaultBg = new Color(60, 63, 65); // Um cinza escuro genérico
+
+        for (int i = 0; i < mTabbedPane.getTabCount(); i++) {
+            Component tabComponent = mTabbedPane.getTabComponentAt(i);
+            
+            if (tabComponent instanceof JPanel) {
+                JPanel panel = (JPanel) tabComponent;
+                JLabel label = null;
+                
+                // Encontra o JLabel dentro do painel para mudar a fonte/cor do texto
+                for (Component c : panel.getComponents()) {
+                    if (c instanceof JLabel) {
+                        label = (JLabel) c;
+                        break;
+                    }
+                }
+
+                if (i == selectedIndex) {
+                    // ABA ATIVA
+                    panel.setBackground(activeHighlight);
+                    if (label != null) {
+                        label.setForeground(activeForeground); // Cor do texto de destaque (ex: branco)
+                        // Aplica Negrito
+                        label.setFont(label.getFont().deriveFont(Font.BOLD));
+                    }
+                } else {
+                    // ABAS INATIVAS
+                    panel.setBackground(defaultBg);
+                    if (label != null) {
+                        // Restaura a cor padrão do texto (geralmente null faz herdar do pai)
+                        label.setForeground(UIManager.getColor("TabbedPane.foreground"));
+                        // Remove Negrito
+                        label.setFont(label.getFont().deriveFont(Font.PLAIN));
+                    }
+                }
+            } else {
+                // Fallback para abas antigas (não deve acontecer com o código novo)
+                if (i == selectedIndex) {
+                    mTabbedPane.setBackgroundAt(i, activeHighlight);
+                } else {
+                    mTabbedPane.setBackgroundAt(i, defaultBg);
+                }
+            }
+        }
+    }
+
 	public void addTabbedPane(JTabbedPane pTabbedPane) {
 		mTabbedPane = pTabbedPane;
 		mTabbedPaneMapModules = new Vector();
@@ -2007,6 +2089,7 @@ public class Controller implements MapModuleChangeObserver {
 
 			public synchronized void stateChanged(ChangeEvent pE) {
 				tabSelectionChanged();
+				highlightActiveTab(); // MODIFICADO: Chamada para realçar a aba ativa
 			}
 
 		});
@@ -2029,8 +2112,13 @@ public class Controller implements MapModuleChangeObserver {
 				}
 				// create new tab:
 				mTabbedPaneMapModules.add(pNewMapModule);
+				// MODIFICADO: Uso de Custom Tab Component
 				mTabbedPane.addTab(pNewMapModule.toString(), new JPanel());
-				mTabbedPane.setSelectedIndex(mTabbedPane.getTabCount() - 1);
+                int newTabIndex = mTabbedPane.getTabCount() - 1;
+				mTabbedPane.setTabComponentAt(newTabIndex, createTabComponent(pNewMapModule.toString()));
+				
+				mTabbedPane.setSelectedIndex(newTabIndex);
+				highlightActiveTab(); // MODIFICADO: Atualiza o realce
 			}
 
 			public void beforeMapModuleChange(MapModule pOldMapModule,
@@ -2066,8 +2154,20 @@ public class Controller implements MapModuleChangeObserver {
 					MindMap pModel) {
 				for (int i = 0; i < mTabbedPaneMapModules.size(); ++i) {
 					if (mTabbedPaneMapModules.get(i) == pMapModule) {
-						mTabbedPane.setTitleAt(i,
-								pNewMapTitle + ((pModel.isSaved()) ? "" : "*"));
+                        // MODIFICADO: Atualiza o JLabel dentro do componente customizado
+                        String finalTitle = pNewMapTitle + ((pModel.isSaved()) ? "" : "*");
+						Component tabComponent = mTabbedPane.getTabComponentAt(i);
+						if (tabComponent instanceof JPanel) {
+							JPanel panel = (JPanel) tabComponent;
+							for (Component comp : panel.getComponents()) {
+								if (comp instanceof JLabel) {
+									((JLabel) comp).setText(finalTitle);
+									break;
+								}
+							}
+						} else {
+						    mTabbedPane.setTitleAt(i, finalTitle);
+                        }
 					}
 				}
 			}

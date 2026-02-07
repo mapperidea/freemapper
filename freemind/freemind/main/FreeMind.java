@@ -157,9 +157,9 @@ public class FreeMind extends JFrame implements FreeMindMain {
 
 	private Logger logger = null;
 
-	protected static final VersionInformation VERSION = new VersionInformation("1.0.12");
+	protected static final VersionInformation VERSION = new VersionInformation("1.0.14");
 
-	public static final String XML_VERSION = "1.0.12";
+	public static final String XML_VERSION = "1.0.14";
 
 	public static final String RESOURCES_REMIND_USE_RICH_TEXT_IN_NEW_LONG_NODES = "remind_use_rich_text_in_new_long_nodes";
 
