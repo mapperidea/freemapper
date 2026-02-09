@@ -24,11 +24,12 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Font;
+import java.awt.Graphics; // MODIFICADO: Necessário para a borda customizada
 import java.awt.Graphics2D;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.HeadlessException;
-import java.awt.Insets;
+import java.awt.Insets; // MODIFICADO: Necessário para a borda customizada
 import java.awt.KeyboardFocusManager;
 import java.awt.RenderingHints;
 import java.awt.Window;
@@ -1999,44 +2000,40 @@ public class Controller implements MapModuleChangeObserver {
 	}
 
     // MODIFICADO: Métodos auxiliares para Custom Tab Components
-	private JPanel createTabComponent(String title) {
+    private JPanel createTabComponent(String title) {
         JPanel tabPanel = new JPanel(new BorderLayout());
-        tabPanel.setOpaque(true); 
+        tabPanel.setOpaque(false); // IMPORTANTE: Transparente para assumir a cor da aba nativa
         
         JLabel titleLabel = new JLabel(title);
         titleLabel.setOpaque(false);
         
-        // ALTERAÇÃO AQUI: 
-        // Define margens: 2px (Topo), 5px (Esquerda), 2px (Base), 5px (Direita)
-        // Isso "empurra" a borda para fora, criando o efeito de botão/etiqueta
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5)); 
+        // Define uma borda vazia inicial para manter o espaçamento padrão
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
         
         tabPanel.add(titleLabel, BorderLayout.CENTER);
         return tabPanel;
     }
 
-	private void highlightActiveTab() {
+    private void highlightActiveTab() {
         if (mTabbedPane == null) {
             return;
         }
 
         int selectedIndex = mTabbedPane.getSelectedIndex();
         
-        // COR NEUTRA INTELIGENTE:
-        // Tenta pegar a cor de seleção de listas do próprio tema (geralmente um cinza ou azul sóbrio)
+        // --- CORES ---
+        // Cor da linha de destaque (Tenta pegar do sistema ou usa um padrão)
         Color activeHighlight = UIManager.getColor("List.selectionBackground");
-        Color activeForeground = UIManager.getColor("List.selectionForeground");
+        // Fallback: Azul suave ou roxo
+        if (activeHighlight == null) activeHighlight = new Color(110, 110, 220); 
 
-        // Fallback: Se o tema não informar cor, usa um Cinza Médio (funciona no claro e no escuro)
-        if (activeHighlight == null) {
-            activeHighlight = new Color(160, 160, 160); 
-            activeForeground = Color.BLACK;
-        }
+        // Cor do Texto Ativo (Geralmente Branco ou a mesma cor da linha)
+        Color activeText = UIManager.getColor("List.selectionForeground");
+        if (activeText == null) activeText = Color.WHITE;
 
-        // Cor padrão do fundo da aba (para as inativas)
-        Color defaultBg = UIManager.getColor("TabbedPane.background");
-        // Fallback para cor padrão se falhar
-        if (defaultBg == null) defaultBg = new Color(60, 63, 65); // Um cinza escuro genérico
+        // Cor do Texto Inativo (Cinza claro)
+        Color inactiveText = UIManager.getColor("TabbedPane.foreground");
+        if (inactiveText == null) inactiveText = new Color(180, 180, 180);
 
         for (int i = 0; i < mTabbedPane.getTabCount(); i++) {
             Component tabComponent = mTabbedPane.getTabComponentAt(i);
@@ -2045,7 +2042,7 @@ public class Controller implements MapModuleChangeObserver {
                 JPanel panel = (JPanel) tabComponent;
                 JLabel label = null;
                 
-                // Encontra o JLabel dentro do painel para mudar a fonte/cor do texto
+                // Encontra o JLabel
                 for (Component c : panel.getComponents()) {
                     if (c instanceof JLabel) {
                         label = (JLabel) c;
@@ -2053,30 +2050,28 @@ public class Controller implements MapModuleChangeObserver {
                     }
                 }
 
-                if (i == selectedIndex) {
-                    // ABA ATIVA
-                    panel.setBackground(activeHighlight);
-                    if (label != null) {
-                        label.setForeground(activeForeground); // Cor do texto de destaque (ex: branco)
-                        // Aplica Negrito
+                if (label != null) {
+                    if (i == selectedIndex) {
+                        // === ABA ATIVA ===
+                        // Aplica a borda com linha arredondada embaixo
+                        // Parâmetros: Cor, Espessura da linha (3px), Espaço entre texto e linha (3px)
+                        label.setBorder(new RoundedBottomBorder(activeHighlight, 3, 3));
+                        
+                        // Opcional: Mudar a cor do texto para combinar ou destacar
+                        label.setForeground(activeText); 
+                        // Negrito
                         label.setFont(label.getFont().deriveFont(Font.BOLD));
-                    }
-                } else {
-                    // ABAS INATIVAS
-                    panel.setBackground(defaultBg);
-                    if (label != null) {
-                        // Restaura a cor padrão do texto (geralmente null faz herdar do pai)
-                        label.setForeground(UIManager.getColor("TabbedPane.foreground"));
-                        // Remove Negrito
+                    } else {
+                        // === ABA INATIVA ===
+                        // Remove a linha (borda vazia com o mesmo espaçamento total para o texto não pular)
+                        // Topo: 2, Esq: 5, Base: 3(gap)+3(linha)=6, Dir: 5
+                        label.setBorder(BorderFactory.createEmptyBorder(2, 5, 6, 5));
+                        
+                        // Cor normal
+                        label.setForeground(inactiveText);
+                        // Fonte normal
                         label.setFont(label.getFont().deriveFont(Font.PLAIN));
                     }
-                }
-            } else {
-                // Fallback para abas antigas (não deve acontecer com o código novo)
-                if (i == selectedIndex) {
-                    mTabbedPane.setBackgroundAt(i, activeHighlight);
-                } else {
-                    mTabbedPane.setBackgroundAt(i, defaultBg);
                 }
             }
         }
@@ -2213,5 +2208,42 @@ public class Controller implements MapModuleChangeObserver {
 		setProperty(PAGE_FORMAT_PROPERTY,
 				Tools.getPageFormatAsString(pageFormat.getPaper()));
 	}
+
+    /**
+     * Borda customizada que desenha uma linha arredondada na parte inferior.
+     */
+    private static class RoundedBottomBorder implements javax.swing.border.Border {
+        private final Color color;
+        private final int thickness;
+        private final int gap; // Espaço entre o texto e a linha
+
+        public RoundedBottomBorder(Color color, int thickness, int gap) {
+            this.color = color;
+            this.thickness = thickness;
+            this.gap = gap;
+        }
+
+        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
+            Graphics2D g2 = (Graphics2D) g;
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(color);
+            
+            // Calcula a posição da linha (no rodapé do componente)
+            int lineWidth = width; 
+            int lineY = height - thickness; 
+            
+            // Desenha um retângulo arredondado preenchido
+            g2.fillRoundRect(x, lineY, lineWidth, thickness, thickness, thickness);
+        }
+
+        public Insets getBorderInsets(Component c) {
+            // Topo, Esquerda, Base (gap + espessura), Direita
+            return new Insets(2, 5, gap + thickness, 5); 
+        }
+
+        public boolean isBorderOpaque() {
+            return false;
+        }
+    }
 
 }
