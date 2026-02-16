@@ -2021,20 +2021,32 @@ public class Controller implements MapModuleChangeObserver {
 
         int selectedIndex = mTabbedPane.getSelectedIndex();
         
-        // --- CORES ---
-        // Cor da linha de destaque (Tenta pegar do sistema ou usa um padrão)
+        // --- CORES BASE ---
+        // Cor da linha (pega do sistema ou usa azul do Windows 10/11)
         Color activeHighlight = UIManager.getColor("List.selectionBackground");
-        // Fallback: Azul suave ou roxo
-        if (activeHighlight == null) activeHighlight = new Color(110, 110, 220); 
+        if (activeHighlight == null) activeHighlight = new Color(0, 120, 215); 
 
-        // Cor do Texto Ativo (Geralmente Branco ou a mesma cor da linha)
-        Color activeText = UIManager.getColor("List.selectionForeground");
-        if (activeText == null) activeText = Color.WHITE;
+        // Cores padrão de fundo e texto da aba nativa
+        Color bg = UIManager.getColor("TabbedPane.background");
+        Color fg = UIManager.getColor("TabbedPane.foreground");
+        
+        if (bg == null) bg = new Color(240, 240, 240); // Fallback fundo claro
+        if (fg == null) fg = Color.BLACK;              // Fallback texto escuro
 
-        // Cor do Texto Inativo (Cinza claro)
-        Color inactiveText = UIManager.getColor("TabbedPane.foreground");
-        if (inactiveText == null) inactiveText = new Color(180, 180, 180);
+        // --- TRAVA DE SEGURANÇA DE CONTRASTE (Proteção contra bugs do Windows L&F) ---
+        int bgBrightness = (bg.getRed() + bg.getGreen() + bg.getBlue()) / 3;
+        int fgBrightness = (fg.getRed() + fg.getGreen() + fg.getBlue()) / 3;
+        
+        // Se o fundo for CLARO e o texto for CLARO (bug do Windows), forçamos o texto para PRETO
+        if (bgBrightness > 180 && fgBrightness > 180) {
+            fg = Color.BLACK;
+        } 
+        // Se o fundo for ESCURO e o texto for ESCURO (outro bug possível), forçamos para BRANCO
+        else if (bgBrightness < 80 && fgBrightness < 80) {
+            fg = Color.WHITE;
+        }
 
+        // Agora usamos a cor corrigida (fg) tanto para aba ativa quanto inativa!
         for (int i = 0; i < mTabbedPane.getTabCount(); i++) {
             Component tabComponent = mTabbedPane.getTabComponentAt(i);
             
@@ -2051,25 +2063,16 @@ public class Controller implements MapModuleChangeObserver {
                 }
 
                 if (label != null) {
+                    // Texto SEMPRE recebe a cor de contraste correta
+                    label.setForeground(fg); 
+
                     if (i == selectedIndex) {
                         // === ABA ATIVA ===
-                        // Aplica a borda com linha arredondada embaixo
-                        // Parâmetros: Cor, Espessura da linha (3px), Espaço entre texto e linha (3px)
                         label.setBorder(new RoundedBottomBorder(activeHighlight, 3, 3));
-                        
-                        // Opcional: Mudar a cor do texto para combinar ou destacar
-                        label.setForeground(activeText); 
-                        // Negrito
-                        label.setFont(label.getFont().deriveFont(Font.BOLD));
+                        label.setFont(label.getFont().deriveFont(Font.BOLD)); // O diferencial agora é só o negrito
                     } else {
                         // === ABA INATIVA ===
-                        // Remove a linha (borda vazia com o mesmo espaçamento total para o texto não pular)
-                        // Topo: 2, Esq: 5, Base: 3(gap)+3(linha)=6, Dir: 5
                         label.setBorder(BorderFactory.createEmptyBorder(2, 5, 6, 5));
-                        
-                        // Cor normal
-                        label.setForeground(inactiveText);
-                        // Fonte normal
                         label.setFont(label.getFont().deriveFont(Font.PLAIN));
                     }
                 }
